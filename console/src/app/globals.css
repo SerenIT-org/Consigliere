@@ -1,0 +1,136 @@
+:root {
+  color-scheme: light dark;
+  --bg: #0e1116;
+  --fg: #e6edf3;
+  --muted: #8b949e;
+  --tile-bg: #161b22;
+  --border: #30363d;
+  --accent: #58a6ff;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.tile {
+  background: var(--tile-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.tile-header h2 {
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.tile-role {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.tile-tags {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0;
+  margin: 0;
+}
+
+.tile-tags li {
+  background: var(--border);
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.tile-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.widget {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 0.85rem;
+}
+
+.widget-dashboards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.widget-status.online {
+  color: #3fb950;
+}
+
+.widget-status.offline {
+  color: var(--muted);
+}
+
+.tile-edit {
+  margin-top: auto;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.tile-edit:hover {
+  color: var(--accent);
+}
+
+.empty-state {
+  color: var(--muted);
+}
+
+.sync-button {
+  background: var(--tile-bg);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  border-radius: 6px;
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+}
+
+.sync-button:hover {
+  border-color: var(--accent);
+}

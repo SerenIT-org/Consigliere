@@ -1,0 +1,8 @@
+services:
+  console:
+    build: ../../console   # or swap for a published image once this has a registry
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env   # copy from console/.env.example, keep untracked (see .gitignore)

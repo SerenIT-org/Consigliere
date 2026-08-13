@@ -41,6 +41,27 @@ instead of apt, and a launchd agent instead of a systemd timer since macOS
 has no systemd. Security posture role is skipped for now — XProtect is
 already native; revisit if that ever feels insufficient.
 
+### 4. Fleet console — `console/` (Next.js)
+
+A bespoke webUI, deployed as its own stack (`stacks/console/`) and gated
+behind OIDC login via [Pocket ID](https://github.com/pocket-id/pocket-id).
+One tile per machine — KVM link, SSH launch, dashboard links, live
+reachability — sourced from a pluggable machine-data provider
+(`console/src/lib/providers/`); the only implementation today reads one
+Outline doc per machine and can regenerate a fleet-wide overview table
+from those docs on demand, so nothing has to be hand-copied between pages.
+See [console/README.md](console/README.md) for the per-doc convention and
+setup. Status: scaffold builds and typechecks clean, not yet run against
+real Outline/Pocket ID/Tailscale accounts.
+
+### 5. Provisioning — not yet built
+
+Terraform, for standing up new Debian servers themselves (not just
+configuring ones that already exist) — the provisioning substrate is a mix
+of hypervisor/cloud/bare-metal and not yet settled, so this hasn't been
+scaffolded. `hosts/bootstrap/` + cloud-init covers "a box already exists,
+get it self-reconciling" in the meantime.
+
 ## Inventory
 
 No static inventory file — `hosts/inventory/tailscale.yml` uses the
@@ -77,3 +98,7 @@ review PRs like it.
   Ansible Vault committed to the repo, or pulled from an external store?
 - Where git is hosted — self-hosted Gitea on the tailnet vs GitHub.
 - Whether `tag:swarm-manager` join tokens get regenerated/rotated, and how.
+- Provisioning substrate for Terraform (hypervisor/cloud/bare-metal mix) —
+  needed before the provisioning layer can be scaffolded.
+- Outline API field names in `console/src/lib/outline/client.ts` are
+  unverified against a live instance — check on first real run.
