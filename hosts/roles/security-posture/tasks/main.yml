@@ -38,7 +38,7 @@
 
 - name: Schedule daily maldet scan
   ansible.builtin.cron:
-    name: "atc: daily maldet scan"
+    name: "kuzka: daily maldet scan"
     hour: "{{ security_posture_maldet_cron_hour }}"
     minute: "0"
     job: >-

@@ -1,7 +1,8 @@
-# ATC — Air Traffic Control
+# Kuzka
 
 GitOps-based baseline setup and continuous maintenance for a homelab cluster
 (Linux servers today, macOS hosts eventually), networked over Tailscale.
+Formerly named ATC (Air Traffic Control).
 
 ## Architecture
 
@@ -54,7 +55,7 @@ can't be the *first* step — see `hosts/bootstrap/bootstrap.sh`, which:
 
 1. Installs `git` + `ansible`
 2. Runs one immediate `ansible-pull` against this repo
-3. Installs + enables the `atc-pull.service`/`.timer` systemd units so
+3. Installs + enables the `kuzka-pull.service`/`.timer` systemd units so
    future runs happen on schedule without intervention
 
 ## Secrets

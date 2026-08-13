@@ -1,5 +1,5 @@
 [Unit]
-Description=Run ATC ansible-pull reconciliation on a schedule
+Description=Run Kuzka ansible-pull reconciliation on a schedule
 
 [Timer]
 OnBootSec=2min

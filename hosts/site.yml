@@ -3,7 +3,7 @@
 # (on-demand / webhook-triggered). Keep this file boring — real logic lives
 # in the roles.
 
-- name: ATC baseline + maintenance
+- name: Kuzka baseline + maintenance
   hosts: all
   become: true
   roles:
