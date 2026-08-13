@@ -1,0 +1,11 @@
+---
+baseline_timezone: "Etc/UTC"
+
+baseline_packages:
+  - curl
+  - git
+  - htop
+  - ufw
+  - unattended-upgrades
+
+baseline_unattended_upgrades_auto_reboot: false   # flip on per-host once you trust it

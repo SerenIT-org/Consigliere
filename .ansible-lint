@@ -1,0 +1,8 @@
+---
+exclude_paths:
+  - .github/
+  - stacks/
+
+skip_list:
+  # revisit once roles are fleshed out past skeleton stage
+  - yaml[line-length]

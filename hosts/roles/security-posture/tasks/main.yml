@@ -1,0 +1,46 @@
+---
+- name: Install Lynis (from distro repo — good enough for scheduled audits)
+  ansible.builtin.apt:
+    name: lynis
+    state: present
+    update_cache: true
+
+- name: Run a Lynis audit and stash the report
+  ansible.builtin.command:
+    cmd: lynis audit system --cronjob
+  args:
+    chdir: /tmp
+  register: _lynis_run
+  changed_when: false   # audit-only, never mutates state
+  # TODO: ship /var/log/lynis-report.dat somewhere centrally visible
+  # (Semaphore task output is fine for now; revisit once there's an actual
+  # dashboard for posture results).
+
+- name: Check whether maldet is already installed
+  ansible.builtin.stat:
+    path: /usr/local/maldetect/maldet
+  register: _maldet_bin
+
+- name: Install Linux Malware Detect (maldet)
+  when: not _maldet_bin.stat.exists
+  block:
+    - name: Download maldet release
+      ansible.builtin.unarchive:
+        src: https://github.com/rfxn/linux-malware-detect/archive/refs/heads/master.tar.gz
+        dest: /tmp
+        remote_src: true
+
+    - name: Run maldet installer
+      ansible.builtin.command:
+        cmd: ./install.sh
+        chdir: /tmp/linux-malware-detect-master
+      changed_when: true
+
+- name: Schedule daily maldet scan
+  ansible.builtin.cron:
+    name: "atc: daily maldet scan"
+    hour: "{{ security_posture_maldet_cron_hour }}"
+    minute: "0"
+    job: >-
+      /usr/local/maldetect/maldet --scan-all
+      {{ security_posture_maldet_scan_paths | join(' ') }} >/dev/null 2>&1

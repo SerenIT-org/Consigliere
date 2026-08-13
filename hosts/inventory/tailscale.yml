@@ -1,0 +1,27 @@
+---
+# Dynamic inventory sourced from the tailnet via the Tailscale API, so new
+# hosts are picked up automatically as they join and get tagged — no
+# static host list to maintain.
+#
+# Requires TAILSCALE_API_KEY (or oauth client id/secret) in the environment
+# the inventory is evaluated in (ansible-pull's systemd unit, Semaphore's
+# task env, and your own shell for ad-hoc runs).
+#
+# NOTE: verify option names against the installed collection version with
+#   `ansible-doc -t inventory community.general.tailscale`
+# before relying on this — plugin options have shifted across releases and
+# this file hasn't been run against a live tailnet yet.
+
+plugin: community.general.tailscale
+tailnet: "-"          # "-" = the default tailnet for the API key's owner
+
+# Group hosts by their Tailscale ACL tags, e.g. tag:server -> group "server"
+strict: false
+compose:
+  ansible_host: addresses[0]
+
+groups:
+  swarm_manager: "'tag:swarm-manager' in tags"
+  swarm_worker: "'tag:swarm-worker' in tags"
+  server: "'tag:server' in tags"
+  mac: "'tag:mac' in tags"

@@ -1,0 +1,13 @@
+---
+# Entry point for both ansible-pull (scheduled, on every host) and Semaphore
+# (on-demand / webhook-triggered). Keep this file boring — real logic lives
+# in the roles.
+
+- name: ATC baseline + maintenance
+  hosts: all
+  become: true
+  roles:
+    - baseline
+    - tailscale
+    - docker
+    - security-posture

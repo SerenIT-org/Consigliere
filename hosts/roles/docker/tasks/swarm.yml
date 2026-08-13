@@ -1,0 +1,18 @@
+---
+# NOTE: this only handles the simple two-shape case (init the first
+# manager, join everyone else as a worker). Multi-manager HA and manager
+# promotion aren't modeled yet — come back to this once there's more than
+# one manager host in the tailnet.
+
+- name: Init swarm on the manager
+  community.docker.docker_swarm:
+    state: present
+    advertise_addr: "{{ ansible_tailscale0.ipv4.address | default(ansible_default_ipv4.address) }}"
+  when: "'swarm_manager' in group_names"
+
+- name: Join swarm as worker
+  community.docker.docker_swarm:
+    state: join
+    join_token: "{{ docker_swarm_join_token }}"
+    remote_addrs: ["{{ docker_swarm_manager_addr }}:2377"]
+  when: "'swarm_worker' in group_names and docker_swarm_join_token != ''"

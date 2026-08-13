@@ -1,0 +1,10 @@
+---
+docker_mode: "{{ docker_mode | default('standalone') }}"   # standalone | swarm, set in group_vars
+
+docker_users: []   # usernames to add to the `docker` group
+
+# swarm-only, see tasks/swarm.yml
+# TODO (open decision): join tokens shouldn't live here in plaintext once
+# real swarm hosts exist — vault-encrypt or pull from a secret store.
+docker_swarm_manager_addr: ""   # tailscale IP of the first manager, e.g. 100.x.x.x
+docker_swarm_join_token: ""

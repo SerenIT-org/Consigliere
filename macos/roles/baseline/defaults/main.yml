@@ -1,0 +1,8 @@
+---
+baseline_taps: []
+
+baseline_brews:
+  - git
+  - tailscale
+
+baseline_casks: []

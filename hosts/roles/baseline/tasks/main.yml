@@ -1,0 +1,45 @@
+---
+- name: Set timezone
+  community.general.timezone:
+    name: "{{ baseline_timezone }}"
+
+- name: Install baseline packages
+  ansible.builtin.apt:
+    name: "{{ baseline_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Enable unattended-upgrades
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Configure unattended-upgrades auto-reboot
+  ansible.builtin.lineinfile:
+    path: /etc/apt/apt.conf.d/50unattended-upgrades
+    regexp: '^\s*//?\s*Unattended-Upgrade::Automatic-Reboot\b'
+    line: 'Unattended-Upgrade::Automatic-Reboot "{{ baseline_unattended_upgrades_auto_reboot | lower }}";'
+    create: false
+  # TODO: this file's default contents vary by Debian/Ubuntu release enough
+  # that a plain lineinfile match is fragile — revisit with a template once
+  # this has been run against real hosts.
+
+- name: Enable ufw with default deny incoming
+  community.general.ufw:
+    state: enabled
+    policy: deny
+    direction: incoming
+
+- name: Allow SSH through ufw
+  community.general.ufw:
+    rule: allow
+    name: OpenSSH
+  # NOTE: once the tailscale role has run, consider tightening this to
+  # only allow SSH on the tailscale0 interface (`interface: tailscale0`)
+  # rather than every interface.

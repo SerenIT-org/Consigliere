@@ -1,0 +1,78 @@
+# ATC — Air Traffic Control
+
+GitOps-based baseline setup and continuous maintenance for a homelab cluster
+(Linux servers today, macOS hosts eventually), networked over Tailscale.
+
+## Architecture
+
+Two layers, each with its own reconciliation loop. Git is the source of
+truth for both — nothing gets applied by hand.
+
+### 1. Host OS layer — `hosts/` (Ansible)
+
+Packages, Tailscale enrollment, Docker engine install, security posture
+checks. Applied via **`ansible-pull`** on a systemd timer running on every
+host (see `hosts/bootstrap/`) — each host reconciles itself against this
+repo on a schedule, so drift gets corrected automatically without anyone
+running a playbook by hand.
+
+[Semaphore UI](https://github.com/semaphoreui/semaphore) sits alongside for
+visibility (run history, dashboard) and on-demand/webhook-triggered runs —
+it is not the primary execution path, `ansible-pull` is.
+
+Roles:
+- `baseline` — users, SSH hardening, unattended-upgrades
+- `tailscale` — install + join (tags-based, see inventory below)
+- `docker` — Docker CE install; `docker_mode: standalone|swarm` toggles swarm-specific tasks
+- `security-posture` — Lynis (general audit) + Linux Malware Detect / maldet
+
+### 2. Application/stack layer — `stacks/` (Arcane)
+
+Docker Compose / Swarm stack definitions, one directory per service.
+[Arcane](https://github.com/ofkm/arcane) watches this tree directly and
+handles sync, drift detection, and redeploys — it owns this layer, Ansible
+does not touch running containers beyond the Docker engine itself.
+
+### 3. macOS — `macos/`
+
+Same philosophy (git is source of truth, self-reconciling), but Homebrew
+instead of apt, and a launchd agent instead of a systemd timer since macOS
+has no systemd. Security posture role is skipped for now — XProtect is
+already native; revisit if that ever feels insufficient.
+
+## Inventory
+
+No static inventory file — `hosts/inventory/tailscale.yml` uses the
+`community.general.tailscale` dynamic inventory plugin, grouping hosts by
+Tailscale ACL tags (`tag:server`, `tag:mac`, `tag:swarm-manager`, ...) so
+new hosts join their group automatically as the tailnet grows.
+
+## Bootstrapping a brand-new host
+
+A fresh host has neither Ansible nor this repo yet, so `ansible-pull`
+can't be the *first* step — see `hosts/bootstrap/bootstrap.sh`, which:
+
+1. Installs `git` + `ansible`
+2. Runs one immediate `ansible-pull` against this repo
+3. Installs + enables the `atc-pull.service`/`.timer` systemd units so
+   future runs happen on schedule without intervention
+
+## Secrets
+
+Nothing sensitive is committed in plaintext — Tailscale auth keys, Swarm
+join tokens, etc. are expected via Ansible Vault or an external secret
+source (TODO: pick one — see open decisions below).
+
+## CI
+
+`.github/workflows/lint.yml` runs `ansible-lint` + `yamllint` on every
+push/PR. Since pushes to `main` are what `ansible-pull` actually applies
+to live hosts, this lint gate is effectively the change-approval step —
+review PRs like it.
+
+## Open decisions (not yet settled)
+
+- Where secrets (Tailscale authkeys, swarm join tokens) actually live —
+  Ansible Vault committed to the repo, or pulled from an external store?
+- Where git is hosted — self-hosted Gitea on the tailnet vs GitHub.
+- Whether `tag:swarm-manager` join tokens get regenerated/rotated, and how.

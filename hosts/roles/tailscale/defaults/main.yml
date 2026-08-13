@@ -1,0 +1,14 @@
+---
+# TODO (open decision, see README): where does this secret actually come
+# from? Not committed in plaintext either way. Options:
+#   - ansible-vault encrypted var file, vault password supplied to
+#     ansible-pull via --vault-password-file pointing at a file dropped
+#     out-of-band during bootstrap
+#   - pulled from an external secret store at run time
+tailscale_authkey: "{{ lookup('env', 'TAILSCALE_AUTHKEY') }}"
+
+tailscale_args: "--ssh"   # enables Tailscale SSH; drop if you'd rather manage keys yourself
+
+# ACL tags applied on join — set per-group/per-host, e.g. in
+# group_vars/swarm_manager.yml: tailscale_tags: "tag:server,tag:swarm-manager"
+tailscale_tags: "tag:server"
