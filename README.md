@@ -4,6 +4,10 @@ GitOps-based baseline setup and continuous maintenance for a homelab cluster
 (Linux servers today, macOS hosts eventually), networked over Tailscale.
 Formerly named ATC (Air Traffic Control).
 
+See [VISION.md](VISION.md) for what this project actually is, how its
+modules relate to each other and to the sibling `novak`/`flashCtrl`
+projects, and what's deliberately out of scope.
+
 ## Architecture
 
 Two layers, each with its own reconciliation loop. Git is the source of
