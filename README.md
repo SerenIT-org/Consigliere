@@ -1,8 +1,8 @@
-# Kuzka
+# Consigliere
 
 GitOps-based baseline setup and continuous maintenance for a homelab cluster
 (Linux servers today, macOS hosts eventually), networked over Tailscale.
-Formerly named ATC (Air Traffic Control).
+Formerly named ATC (Air Traffic Control), then Kuzka.
 
 See [VISION.md](VISION.md) for what this project actually is, how its
 modules relate to each other and to the sibling `novak`/`flashCtrl`
@@ -29,7 +29,11 @@ Roles:
 - `baseline` — users, SSH hardening, unattended-upgrades
 - `tailscale` — install + join (tags-based, see inventory below)
 - `docker` — Docker CE install; `docker_mode: standalone|swarm` toggles swarm-specific tasks
-- `security-posture` — Lynis (general audit) + Linux Malware Detect / maldet
+- `security_posture` — enrolls a Wazuh agent against `security_posture_wazuh_manager_addr`
+  (see [stacks/wazuh/](stacks/wazuh/)); replaced an earlier Lynis+maldet
+  approach, see VISION.md
+- `wazuh_host` — applied only to `tag:wazuh-manager`, sets the
+  `vm.max_map_count` sysctl the Wazuh indexer requires
 
 ### 2. Application/stack layer — `stacks/` (Arcane)
 
@@ -37,6 +41,10 @@ Docker Compose / Swarm stack definitions, one directory per service.
 [Arcane](https://github.com/ofkm/arcane) watches this tree directly and
 handles sync, drift detection, and redeploys — it owns this layer, Ansible
 does not touch running containers beyond the Docker engine itself.
+
+Scaffolded so far: `console/` (below) and `wazuh/` — the manager/indexer/
+dashboard for fleet security monitoring, vendored as a git submodule
+rather than hand-copied (see [stacks/wazuh/README.md](stacks/wazuh/README.md)).
 
 ### 3. macOS — `macos/`
 
@@ -80,7 +88,7 @@ can't be the *first* step — see `hosts/bootstrap/bootstrap.sh`, which:
 
 1. Installs `git` + `ansible`
 2. Runs one immediate `ansible-pull` against this repo
-3. Installs + enables the `kuzka-pull.service`/`.timer` systemd units so
+3. Installs + enables the `consigliere-pull.service`/`.timer` systemd units so
    future runs happen on schedule without intervention
 
 ## Secrets
@@ -106,3 +114,8 @@ review PRs like it.
   needed before the provisioning layer can be scaffolded.
 - Outline API field names in `console/src/lib/outline/client.ts` are
   unverified against a live instance — check on first real run.
+- Wazuh's stable tag (submodule pinned to `v4.14.7` as of 2026-08-21) —
+  reverify before deploying, since `main` already tracks an unreleased 5.x
+  line.
+- Nothing in `stacks/wazuh/` or the Wazuh-related roles has been run
+  against a live host yet.

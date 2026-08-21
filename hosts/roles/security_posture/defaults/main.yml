@@ -1,0 +1,11 @@
+---
+# Tailscale address (or hostname) of the tag:wazuh-manager host, see
+# stacks/wazuh/README.md for standing that up. Set this in group_vars once
+# it exists -- this role refuses to run without it (see tasks/main.yml).
+security_posture_wazuh_manager_addr: ""
+
+# Wazuh's apt repo is versioned by major line, not exact patch (.../4.x/...
+# stays 4.x across 4.y.z releases). This MUST match the manager's major
+# version -- verify against whatever's actually deployed via
+# stacks/wazuh/vendor (pinned to v4.14.7 as of 2026-08-21) before changing.
+security_posture_wazuh_apt_repo_version: "4.x"

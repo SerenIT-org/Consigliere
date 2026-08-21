@@ -4,7 +4,7 @@
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>com.kuzka.pull</string>
+  <string>com.consigliere.pull</string>
 
   <key>ProgramArguments</key>
   <array>
@@ -13,8 +13,8 @@
     <string>-lc</string>
     <!-- macOS ansible-pull equivalent: no systemd, so this just does a
          plain git pull + local ansible-playbook run against macos/site.yml.
-         %KUZKA_REPO_DIR% is substituted by bootstrap.sh at install time. -->
-    <string>cd %KUZKA_REPO_DIR% && git pull --ff-only && ansible-playbook -i localhost, macos/site.yml</string>
+         %CONSIGLIERE_REPO_DIR% is substituted by bootstrap.sh at install time. -->
+    <string>cd %CONSIGLIERE_REPO_DIR% && git pull --ff-only && ansible-playbook -i localhost, macos/site.yml</string>
   </array>
 
   <key>StartInterval</key>
@@ -24,8 +24,8 @@
   <true/>
 
   <key>StandardOutPath</key>
-  <string>/tmp/kuzka-pull.log</string>
+  <string>/tmp/consigliere-pull.log</string>
   <key>StandardErrorPath</key>
-  <string>/tmp/kuzka-pull.log</string>
+  <string>/tmp/consigliere-pull.log</string>
 </dict>
 </plist>

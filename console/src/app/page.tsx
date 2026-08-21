@@ -19,7 +19,7 @@ export default async function DashboardPage() {
   return (
     <main className="page">
       <header className="page-header">
-        <h1>Kuzka</h1>
+        <h1>Consigliere</h1>
         <SyncButton />
       </header>
       <TileGrid machines={machines} onlineByHostname={onlineByHostname} />

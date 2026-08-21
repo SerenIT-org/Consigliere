@@ -3,11 +3,17 @@
 # (on-demand / webhook-triggered). Keep this file boring — real logic lives
 # in the roles.
 
-- name: Kuzka baseline + maintenance
+- name: Consigliere baseline + maintenance
   hosts: all
   become: true
   roles:
     - baseline
     - tailscale
     - docker
-    - security-posture
+    - security_posture
+
+- name: Wazuh manager host prerequisites
+  hosts: wazuh_manager
+  become: true
+  roles:
+    - wazuh_host

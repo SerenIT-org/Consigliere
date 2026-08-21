@@ -12,5 +12,7 @@ rules:
   brackets:
     max-spaces-inside: 1
 
+# stacks/wazuh/vendor/ is a vendored third-party submodule, not ours to lint
 ignore: |
   .github/
+  stacks/wazuh/vendor/

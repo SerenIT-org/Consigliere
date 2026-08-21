@@ -1,3 +1,4 @@
+---
 services:
   console:
     build: ../../console   # or swap for a published image once this has a registry

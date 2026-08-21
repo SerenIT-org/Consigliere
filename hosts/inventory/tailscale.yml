@@ -25,3 +25,4 @@ groups:
   swarm_worker: "'tag:swarm-worker' in tags"
   server: "'tag:server' in tags"
   mac: "'tag:mac' in tags"
+  wazuh_manager: "'tag:wazuh-manager' in tags"

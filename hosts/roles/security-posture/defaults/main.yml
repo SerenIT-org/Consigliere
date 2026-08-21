@@ -1,8 +1,0 @@
----
-security_posture_lynis_version: "3.1.1"   # pin + bump deliberately rather than always-latest
-security_posture_maldet_scan_paths:
-  - /home
-  - /srv
-  - /var/www
-
-security_posture_maldet_cron_hour: 3   # local host time, daily scan

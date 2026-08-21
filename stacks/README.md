@@ -17,5 +17,16 @@ stacks/
     .env.example        # document required vars; real .env stays untracked
 ```
 
-Nothing scaffolded here yet — add a directory per service as they're
+Two services are scaffolded so far: [`console/`](console/) (this repo's own
+webUI) and [`wazuh/`](wazuh/). Add a directory per service as they're
 containerized.
+
+### Exception: vendored stacks
+
+`wazuh/` doesn't follow the `docker-compose.yml`-at-the-top convention
+above — it vendors the official `wazuh-docker` repo as a git submodule
+and points Arcane at *its* compose file instead of copying one in. Do this
+for any stack complex/actively-maintained enough that hand-transcribing it
+risks drifting from upstream (multi-file configs, generated certs, that
+kind of thing) — see [wazuh/README.md](wazuh/README.md) for the reasoning.
+Plain single-file stacks should still follow the convention above.

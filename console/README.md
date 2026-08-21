@@ -1,4 +1,4 @@
-# Kuzka console
+# Consigliere console
 
 The bespoke fleet webUI — a tile grid, one tile per machine, with
 per-machine widgets (KVM link, SSH launch, dashboard links, live
@@ -42,8 +42,8 @@ Rather than hand-maintaining a separate "all machines" table in Outline,
 point `OUTLINE_OVERVIEW_DOC_ID` at a doc containing:
 
 ```
-<!-- kuzka:overview:start -->
-<!-- kuzka:overview:end -->
+<!-- consigliere:overview:start -->
+<!-- consigliere:overview:end -->
 ```
 
 anywhere in it. Hitting "Sync overview" in the console (or `POST
@@ -55,7 +55,7 @@ edit by hand. Everything outside the markers in that doc is left alone.
 
 1. Copy `.env.example` to `.env.local` (local dev) or `stacks/console/.env`
    (deployed), fill in:
-   - Pocket ID: register Kuzka as an OIDC client, redirect URI
+   - Pocket ID: register Consigliere as an OIDC client, redirect URI
      `${NEXTAUTH_URL}/api/auth/callback/pocket-id`.
    - Outline: an API token (Settings → API), the collection id holding the
      per-machine docs, and optionally an overview doc id (see above).

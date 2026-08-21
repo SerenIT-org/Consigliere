@@ -2,20 +2,20 @@ import { getProvider } from "../providers/registry";
 import { getDocument, updateDocumentText } from "./client";
 import type { Machine } from "../providers/types";
 
-const START = "<!-- kuzka:overview:start -->";
-const END = "<!-- kuzka:overview:end -->";
+const START = "<!-- consigliere:overview:start -->";
+const END = "<!-- consigliere:overview:end -->";
 
 /**
- * Regenerates the table between the `kuzka:overview` markers in the
+ * Regenerates the table between the `consigliere:overview` markers in the
  * configured overview doc from every machine doc's own fields — this is
  * what replaces hand-copying data into a separate overview page. The rest
  * of the doc (anything outside the markers) is left untouched.
  *
  * The markers need to be added to the overview doc once, by hand:
  *
- *   <!-- kuzka:overview:start -->
+ *   <!-- consigliere:overview:start -->
  *   (this content gets replaced on every sync)
- *   <!-- kuzka:overview:end -->
+ *   <!-- consigliere:overview:end -->
  */
 export async function syncOverview(): Promise<{ machineCount: number }> {
   const overviewDocId = process.env.OUTLINE_OVERVIEW_DOC_ID;

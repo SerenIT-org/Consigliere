@@ -26,9 +26,9 @@
     regexp: '^\s*//?\s*Unattended-Upgrade::Automatic-Reboot\b'
     line: 'Unattended-Upgrade::Automatic-Reboot "{{ baseline_unattended_upgrades_auto_reboot | lower }}";'
     create: false
-  # TODO: this file's default contents vary by Debian/Ubuntu release enough
-  # that a plain lineinfile match is fragile — revisit with a template once
-  # this has been run against real hosts.
+    # TODO: this file's default contents vary by Debian/Ubuntu release enough
+    # that a plain lineinfile match is fragile — revisit with a template once
+    # this has been run against real hosts.
 
 - name: Enable ufw with default deny incoming
   community.general.ufw:
@@ -40,6 +40,6 @@
   community.general.ufw:
     rule: allow
     name: OpenSSH
-  # NOTE: once the tailscale role has run, consider tightening this to
-  # only allow SSH on the tailscale0 interface (`interface: tailscale0`)
-  # rather than every interface.
+    # NOTE: once the tailscale role has run, consider tightening this to
+    # only allow SSH on the tailscale0 interface (`interface: tailscale0`)
+    # rather than every interface.

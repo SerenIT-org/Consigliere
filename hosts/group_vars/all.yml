@@ -5,5 +5,10 @@
 
 docker_mode: standalone   # standalone | swarm — set per-group once swarm hosts exist
 
-kuzka_repo_url: "TODO-set-me"   # git remote this repo lives at, used by bootstrap.sh
-kuzka_repo_branch: main
+consigliere_repo_url: "TODO-set-me"   # git remote this repo lives at, used by bootstrap.sh
+consigliere_repo_branch: main
+
+# Set once stacks/wazuh/ is deployed -- the security_posture role refuses to
+# enroll a wazuh-agent without this. Tailscale address of the tag:wazuh-manager
+# host, e.g.:
+# security_posture_wazuh_manager_addr: 100.x.x.x

@@ -1,5 +1,5 @@
 [Unit]
-Description=Kuzka ansible-pull reconciliation run
+Description=Consigliere ansible-pull reconciliation run
 Wants=network-online.target
 After=network-online.target
 
@@ -7,7 +7,7 @@ After=network-online.target
 Type=oneshot
 # TODO: --vault-password-file once secrets move to ansible-vault (see README)
 ExecStart=/usr/bin/ansible-pull \
-  -U %KUZKA_REPO_URL% \
-  -C %KUZKA_REPO_BRANCH% \
+  -U %CONSIGLIERE_REPO_URL% \
+  -C %CONSIGLIERE_REPO_BRANCH% \
   -i inventory/tailscale.yml \
   hosts/site.yml
