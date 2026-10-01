@@ -35,14 +35,40 @@ diverged from git" across *all* modules, not just OS packages — is the
 throughline that ties them into one project rather than a pile of
 unrelated integrations.
 
+## Public framework, private fleet config
+
+Settled 2026-10-01: this repo is meant to be public and genuinely reusable
+by someone else running their own fleet, not just a place to park this
+user's own config. That means **zero secrets and zero site-specific
+values** live here — group_vars, host_vars, and all ansible-vault secrets
+live in a separate **private** "fleet-config" repo instead (template at
+[fleet-config.example/](fleet-config.example/)). `hosts/bootstrap/reconcile.sh`
+clones both the framework and that private repo on every reconciliation
+run and symlinks the latter's vars into place — see
+[README.md](README.md#public-framework-private-fleet-config).
+
+This is also why infra-level names (env vars, systemd units, the launchd
+label) were deliberately made product-name-agnostic (`FRAMEWORK_REPO_URL`,
+`fleet-reconcile.*`) rather than tied to whatever this project ends up
+called — see Naming below.
+
 ## Modules
 
-### Declared config — `hosts/` (Ansible + `ansible-pull`)
-OS baseline, Tailscale, Docker engine. See [README.md](README.md).
+### Declared config — `hosts/` (Ansible + `reconcile.sh`)
+OS baseline, Tailscale, Docker engine, backups. See [README.md](README.md).
 
 ### Provisioning — Terraform (not yet built)
 Stands servers up, doesn't just configure ones that exist. Blocked on
 settling the substrate (hypervisor/cloud/bare-metal — currently a mix).
+
+### Backups — restic (engine decided, console/agent layer open)
+`hosts/roles/backup` installs restic and a daily backup+prune timer against
+an offsite S3-compatible bucket; all real values (bucket, credentials,
+paths, retention) come from the private fleet-config repo, never from
+here. **Not decided**: whether Arkeep (restic+rclone, central server +
+gRPC/mTLS agents) or Zerobyte (restic web UI, OIDC SSO, no documented
+remote agents) fronts this with a real central console later — this role
+only does the restic engine itself.
 
 ### Containers — `stacks/` (Arcane)
 Adopted, not built — Arcane already does compose/swarm GitOps sync well.
@@ -128,18 +154,45 @@ trust model. If it happens, it's its own integration hanging off the same
 console — not evidence that Consigliere needs to become a universal device
 manager.
 
+## Roadmap (as of 2026-10-01, user-stated priority order)
+
+1. **Centralized backup management** — in progress, see Backups above.
+2. **Caddy → Traefik + Bunny "geoDNS" for existing edge proxies** — lives in
+   a *separate* sibling repo, `geotraefik` (`~/Workspaces/Apps/tooling/geotraefik`),
+   not here. That repo already has a real Traefik v3.6 + Bunny DNS-01 pilot
+   committed. Don't duplicate edge/proxy work in this repo — this came up
+   once already (see git history around 2026-10-01) and got reverted after
+   confirming geotraefik is where it belongs.
+3. **A web UI surfacing all of this** — this is `console/`, already built.
+   User referenced an "Alsos guest portal web app (fork)" as a framework
+   worth drawing from for this — not yet located/reviewed; get the repo
+   path before assuming anything about its stack or design.
+4. **Wazuh rollout** — already scaffolded, see Security posture above.
+5. **Full host + KVM control via flashctrl-sdk** — eventual, per a
+   "flashDK/flashCtrl handoff" the user mentioned. No handoff details seen
+   yet (unlike the geotraefik backup handoff, no cross-session note has
+   come through for this one) — treat flashctrl-sdk's status as still "no
+   code yet" until that surfaces.
+
 ## Open threads (tracked so they don't get re-derived)
 
-- Naming — not landed on one yet.
+- Naming — "Consigliere" is back in the running ("maybe Consigliere was
+  actually a cute and sensible name"), alongside serenIT and conformIT.
+  Still not finalized. Infra-level names stay product-agnostic either way
+  (see "Public framework, private fleet config" above).
 - Terraform's provisioning substrate — hypervisor/cloud/bare-metal mix,
   unresolved.
 - flashctrl-sdk has no code yet — the console's hardware actions are
-  aspirational until it does.
+  aspirational until it does (see Roadmap item 5).
 - Outline vs. WikiJS — under consideration, doesn't block anything (the
   provider abstraction isolates it).
-- Where secrets live (Vault vs. external store) and where git is hosted
-  (Gitea vs. GitHub) — both still open, see README.md.
+- Where this framework repo is hosted — currently GitHub
+  (`github.com/almadon/consigliere`).
 - Wazuh's default credentials need rotating before `stacks/wazuh/` touches
   anything but localhost — see its README's procedure.
 - Update intelligence module (apt-listchanges, Diun/Renovate, breaking-
   change flagging) is named but not yet built.
+- Backup console/agent layer (Arkeep vs. Zerobyte) — restic itself is
+  scaffolded, the layer on top is not chosen.
+- "Alsos guest portal web app (fork)" — referenced as design inspiration
+  for `console/`, location not yet provided.
