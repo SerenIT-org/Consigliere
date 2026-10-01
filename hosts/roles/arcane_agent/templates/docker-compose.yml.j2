@@ -1,0 +1,22 @@
+# Managed by Ansible (hosts/roles/arcane_agent) -- edits here get
+# overwritten on the next reconciliation run. Reproduces getarcaneapp/arcane's
+# docker/examples/compose.agent.yaml (verified 2026-10-01).
+services:
+  arcane-agent:
+    image: ghcr.io/getarcaneapp/agent:latest
+    container_name: arcane-agent
+    ports:
+      - "{{ arcane_agent_port }}:3553"
+    environment:
+      - AGENT_MODE=true
+      - AGENT_TOKEN={{ arcane_agent_token }}
+      - MANAGER_API_URL={{ arcane_manager_api_url }}
+      - EDGE_TRANSPORT={{ arcane_agent_edge_transport }}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - agent-data:/app/data
+    cgroup: host
+    restart: unless-stopped
+
+volumes:
+  agent-data:

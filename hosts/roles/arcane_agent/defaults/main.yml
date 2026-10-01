@@ -1,0 +1,15 @@
+---
+# Applied to tag:arcane-agent (hosts whose Docker the central Arcane
+# manager should also see/manage). Reproduces
+# github.com/getarcaneapp/arcane's docker/examples/compose.agent.yaml
+# (verified 2026-10-01).
+#
+# arcane_agent_token: NOT a shared secret like Arkeep's -- it's minted
+# per-agent from the Arcane manager's own UI (an `arc_...` token) after
+# arcane_manager is up and running. No API for generating this has been
+# verified, so it isn't automated here -- put the real value in this
+# host's host_vars in your fleet-config repo once you have it.
+
+arcane_agent_dir: /opt/arcane-agent
+arcane_agent_port: 3553
+arcane_agent_edge_transport: websocket   # matches Arcane's own default guidance for agents behind NAT/no inbound access

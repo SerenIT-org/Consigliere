@@ -1,8 +1,0 @@
-[Unit]
-Description=restic backup + prune
-Wants=network-online.target
-After=network-online.target
-
-[Service]
-Type=oneshot
-ExecStart=/usr/local/sbin/restic-backup.sh

@@ -1,6 +1,9 @@
 # What Consigliere is
 
-(Renamed from ATC, then Kuzka, to Consigliere on 2026-08-21.)
+(Renamed from ATC, then Kuzka, to Consigliere on 2026-08-21 — briefly
+wobbled through "serenIT" while this repo's working directory got
+shuffled around a sibling session's work on 2026-10-01, confirmed back to
+Consigliere for good the same day.)
 
 Consigliere is a single pane of glass for a fleet of hosts: baseline config,
 provisioning, updates, security posture, and out-of-band hardware access
@@ -61,14 +64,39 @@ OS baseline, Tailscale, Docker engine, backups. See [README.md](README.md).
 Stands servers up, doesn't just configure ones that exist. Blocked on
 settling the substrate (hypervisor/cloud/bare-metal — currently a mix).
 
-### Backups — restic (engine decided, console/agent layer open)
-`hosts/roles/backup` installs restic and a daily backup+prune timer against
-an offsite S3-compatible bucket; all real values (bucket, credentials,
-paths, retention) come from the private fleet-config repo, never from
-here. **Not decided**: whether Arkeep (restic+rclone, central server +
-gRPC/mTLS agents) or Zerobyte (restic web UI, OIDC SSO, no documented
-remote agents) fronts this with a real central console later — this role
-only does the restic engine itself.
+### Backups — Arkeep (decided 2026-10-01, over Zerobyte)
+`hosts/roles/arkeep_server` (one host, `tag:arkeep-server`) and
+`hosts/roles/arkeep_agent` (every backed-up host, `tag:arkeep-agent`)
+deploy [Arkeep](https://github.com/arkeep-io/arkeep) — restic+rclone under
+the hood, central server + gRPC/mTLS agents, agents auto-enroll via the
+server's HTTP API (no manual cert/token exchange for *this* part — see
+below for what *does* need a manual step). Superseded an earlier generic
+`hosts/roles/backup` (hand-rolled restic + systemd timer), retired once
+Arkeep's own agent took over scheduling/retention. All real values (server
+address, secrets) come from the private fleet-config repo.
+
+**One thing that can't be automated**: the shared `arkeep_agent_secret` and
+`arkeep_secret_key` go in vault like any other secret, but there's no
+verified API for *minting* things — enrollment itself is automatic
+(auto-PKI), so this is simpler than it sounds; see
+`hosts/roles/arkeep_server/README.md` for the one manual step there is
+(reverse-proxy wiring, if applicable).
+
+### GitOps engine — Arcane (self-hosted via Ansible)
+`hosts/roles/arcane_manager` (one host) and `hosts/roles/arcane_agent`
+(other Docker hosts) deploy [Arcane](https://github.com/getarcaneapp/arcane)
+itself — previously assumed to just exist; this was a real gap until
+2026-10-01 (Arcane obviously can't GitOps-deploy itself). The manager
+variant uses Arcane's docker-socket-proxy-hardened compose shape since
+that node is also internet-facing (reverse proxy). **One thing that can't
+be automated**: `arcane_agent_token` is minted per-agent from the manager's
+own UI after it's running — no verified API for this, so it's a one-time
+manual step per agent host (goes in that host's `host_vars`, not shared
+group_vars).
+
+Also note: `getarcaneapp/arcane` is the *current* repo — it moved from
+`ofkm/arcane` at some point before 2026-10-01; links elsewhere may still
+say the old name.
 
 ### Containers — `stacks/` (Arcane)
 Adopted, not built — Arcane already does compose/swarm GitOps sync well.
@@ -156,7 +184,10 @@ manager.
 
 ## Roadmap (as of 2026-10-01, user-stated priority order)
 
-1. **Centralized backup management** — in progress, see Backups above.
+1. **Centralized backup management** — Arkeep chosen 2026-10-01, roles
+   scaffolded, see Backups above. First real deployment target: two nodes,
+   one running the Arkeep server + Arcane manager + reverse proxy, the
+   other an agent-only node.
 2. **Caddy → Traefik + Bunny "geoDNS" for existing edge proxies** — lives in
    a *separate* sibling repo, `geotraefik` (`~/Workspaces/Apps/tooling/geotraefik`),
    not here. That repo already has a real Traefik v3.6 + Bunny DNS-01 pilot
@@ -176,10 +207,9 @@ manager.
 
 ## Open threads (tracked so they don't get re-derived)
 
-- Naming — "Consigliere" is back in the running ("maybe Consigliere was
-  actually a cute and sensible name"), alongside serenIT and conformIT.
-  Still not finalized. Infra-level names stay product-agnostic either way
-  (see "Public framework, private fleet config" above).
+- **Naming — settled 2026-10-01: Consigliere.** Working directory and repo
+  should match this (see note below if they ever drift again).
+- **Backup tool — settled 2026-10-01: Arkeep** (over Zerobyte).
 - Terraform's provisioning substrate — hypervisor/cloud/bare-metal mix,
   unresolved.
 - flashctrl-sdk has no code yet — the console's hardware actions are
@@ -192,7 +222,9 @@ manager.
   anything but localhost — see its README's procedure.
 - Update intelligence module (apt-listchanges, Diun/Renovate, breaking-
   change flagging) is named but not yet built.
-- Backup console/agent layer (Arkeep vs. Zerobyte) — restic itself is
-  scaffolded, the layer on top is not chosen.
 - "Alsos guest portal web app (fork)" — referenced as design inspiration
   for `console/`, location not yet provided.
+- None of `arkeep_server`/`arkeep_agent`/`arcane_manager`/`arcane_agent`
+  have been run against a real host yet — scaffolded and template-rendering
+  verified (valid YAML in both the standalone and behind-proxy branches),
+  not deployment-verified.

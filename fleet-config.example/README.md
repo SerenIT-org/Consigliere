@@ -45,15 +45,18 @@ handled by this framework.
 
 ```
 group_vars/
-  all.yml              # defaults applied to every host
+  all.yml                # defaults applied to every host
   all/
-    vault.yml          # ansible-vault encrypted -- never commit plaintext
-  backup_clients.yml    # example: real values for the backup role
+    vault.yml            # ansible-vault encrypted -- never commit plaintext
+  arkeep_server.yml       # real values for tag:arkeep-server
+  arkeep_agent.yml        # real values for tag:arkeep-agent
+  arcane_manager.yml      # real values for tag:arcane-manager
+  arcane_agent.yml        # real values for tag:arcane-agent (except the token, see below)
 host_vars/
-  <hostname>.yml        # per-host overrides, e.g. backup_paths
-.vault_pass              # optional: vault password file, read by reconcile.sh
-                          # if present -- keep this file's own permissions tight
-                          # and don't commit it even here
+  example-arcane-agent-host.yml   # per-host arcane_agent_token (minted from the manager UI, can't be shared)
+.vault_pass                # optional: vault password file, read by reconcile.sh
+                            # if present -- keep this file's own permissions tight
+                            # and don't commit it even here
 ```
 
 See the files in this directory for a concrete starting point.

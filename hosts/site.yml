@@ -18,8 +18,26 @@
   roles:
     - wazuh_host
 
-- name: Backup clients
-  hosts: backup_clients
+- name: Arkeep server
+  hosts: arkeep_server
   become: true
   roles:
-    - backup
+    - arkeep_server
+
+- name: Arkeep agents
+  hosts: arkeep_agent
+  become: true
+  roles:
+    - arkeep_agent
+
+- name: Arcane manager
+  hosts: arcane_manager
+  become: true
+  roles:
+    - arcane_manager
+
+- name: Arcane agents
+  hosts: arcane_agent
+  become: true
+  roles:
+    - arcane_agent

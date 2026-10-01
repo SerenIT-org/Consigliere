@@ -1,0 +1,24 @@
+---
+# Applied to tag:arkeep-agent (every host that gets backed up). Reproduces
+# github.com/arkeep-io/arkeep's deploy/docker/docker-compose.agent.yml as a
+# template, verified against that file 2026-10-01.
+#
+# arkeep_server_addr: gRPC host:port of the arkeep_server host -- its
+# Tailscale address, e.g. 100.x.x.x:9090. Set in your fleet-config repo,
+# not here (it's fleet-specific, not a secret, but still doesn't belong in
+# this public framework).
+# arkeep_agent_secret: shared secret, from group_vars/all/vault.yml --
+# MUST match the value hosts/roles/arkeep_server uses.
+arkeep_agent_dir: /opt/arkeep-agent
+arkeep_agent_log_level: info
+
+# Set to the arkeep_server's public HTTPS URL (matching its arkeep_base_url)
+# when that server is behind a reverse proxy -- required for this agent's
+# enrollment call to reach it. Leave empty if the server exposes port 8080
+# directly. See hosts/roles/arkeep_server/README.md.
+arkeep_agent_server_http_addr: ""
+
+# Paths on THIS host to offer as backup sources in Arkeep's UI (read-only
+# mount). Backup policies themselves are configured centrally in Arkeep's
+# GUI, not here -- this just controls what paths are visible to pick from.
+arkeep_agent_backup_paths: []

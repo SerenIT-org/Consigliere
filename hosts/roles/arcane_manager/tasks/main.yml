@@ -1,0 +1,32 @@
+---
+# Applied to tag:arcane-manager. Deploys Arcane's manager UI behind a
+# docker-socket-proxy (this node is internet-facing). See defaults/main.yml
+# for what's expected from your private fleet-config repo.
+
+- name: Fail fast if the Arcane encryption key isn't configured
+  ansible.builtin.fail:
+    msg: >-
+      arcane_encryption_key is not set -- it comes from your private
+      fleet-config repo's group_vars/all/vault.yml (see
+      fleet-config.example/group_vars/all/vault.yml.example). Generate
+      with: openssl rand -base64 32
+  when: arcane_encryption_key is not defined or not arcane_encryption_key
+
+- name: Create Arcane directory
+  ansible.builtin.file:
+    path: "{{ arcane_manager_dir }}"
+    state: directory
+    mode: "0750"
+
+- name: Write Arcane compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ arcane_manager_dir }}/docker-compose.yml"
+    mode: "0640"
+  register: _arcane_manager_compose
+
+- name: Start Arcane
+  community.docker.docker_compose_v2:
+    project_src: "{{ arcane_manager_dir }}"
+    state: present
+    pull: "{{ 'always' if _arcane_manager_compose.changed else 'missing' }}"

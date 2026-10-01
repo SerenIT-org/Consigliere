@@ -16,10 +16,11 @@ truth for both — nothing gets applied by hand.
 ### 1. Host OS layer — `hosts/` (Ansible)
 
 Packages, Tailscale enrollment, Docker engine install, security posture
-checks. Applied via **`ansible-pull`** on a systemd timer running on every
+checks. Applied via **`reconcile.sh`** on a systemd timer running on every
 host (see `hosts/bootstrap/`) — each host reconciles itself against this
-repo on a schedule, so drift gets corrected automatically without anyone
-running a playbook by hand.
+repo (plus your private fleet-config repo, see below) on a schedule, so
+drift gets corrected automatically without anyone running a playbook by
+hand.
 
 [Semaphore UI](https://github.com/semaphoreui/semaphore) sits alongside for
 visibility (run history, dashboard) and on-demand/webhook-triggered runs —
@@ -34,13 +35,23 @@ Roles:
   approach, see VISION.md
 - `wazuh_host` — applied only to `tag:wazuh-manager`, sets the
   `vm.max_map_count` sysctl the Wazuh indexer requires
+- `arkeep_server` / `arkeep_agent` — centralized backups via
+  [Arkeep](https://github.com/arkeep-io/arkeep): one host runs the server
+  (`tag:arkeep-server`), every backed-up host runs the agent
+  (`tag:arkeep-agent`), connecting outbound over gRPC
+- `arcane_manager` / `arcane_agent` — deploys
+  [Arcane](https://github.com/getarcaneapp/arcane) itself (one manager,
+  agents elsewhere) — Ansible's job is getting Arcane running at all;
+  everything in `stacks/` below is then Arcane's job, not Ansible's
 
 ### 2. Application/stack layer — `stacks/` (Arcane)
 
-Docker Compose / Swarm stack definitions, one directory per service.
-[Arcane](https://github.com/ofkm/arcane) watches this tree directly and
-handles sync, drift detection, and redeploys — it owns this layer, Ansible
-does not touch running containers beyond the Docker engine itself.
+Docker Compose / Swarm stack definitions, one directory per service, once
+Arcane itself is running (see `arcane_manager`/`arcane_agent` above — a
+bootstrapping step, since Arcane can't GitOps-deploy itself). Arcane then
+watches this tree directly and handles sync, drift detection, and
+redeploys — it owns this layer, Ansible does not touch running containers
+beyond the Docker engine itself and Arcane's own containers.
 
 Scaffolded so far: `console/` (below) and `wazuh/` — the manager/indexer/
 dashboard for fleet security monitoring, vendored as a git submodule

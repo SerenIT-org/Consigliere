@@ -1,0 +1,35 @@
+---
+# Applied to tag:arkeep-server. Deploys the Arkeep server (central backup
+# console) via Docker Compose -- see defaults/main.yml for what's expected
+# from your private fleet-config repo.
+
+- name: Fail fast if Arkeep secrets aren't configured
+  ansible.builtin.fail:
+    msg: >-
+      arkeep_secret_key / arkeep_agent_secret are not set -- these come
+      from your private fleet-config repo's group_vars/all/vault.yml (see
+      fleet-config.example/group_vars/all/vault.yml.example).
+      arkeep_agent_secret must be identical to the value every
+      arkeep_agent host uses -- it's a shared secret, not per-host.
+  when: >-
+    arkeep_secret_key is not defined or not arkeep_secret_key or
+    arkeep_agent_secret is not defined or not arkeep_agent_secret
+
+- name: Create Arkeep server directory
+  ansible.builtin.file:
+    path: "{{ arkeep_server_dir }}"
+    state: directory
+    mode: "0750"
+
+- name: Write Arkeep server compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ arkeep_server_dir }}/docker-compose.yml"
+    mode: "0640"
+  register: _arkeep_server_compose
+
+- name: Start Arkeep server
+  community.docker.docker_compose_v2:
+    project_src: "{{ arkeep_server_dir }}"
+    state: present
+    pull: "{{ 'always' if _arkeep_server_compose.changed else 'missing' }}"

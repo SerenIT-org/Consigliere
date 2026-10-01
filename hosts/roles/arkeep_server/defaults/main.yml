@@ -1,0 +1,28 @@
+---
+# Applied to tag:arkeep-server (one host — the central backup console).
+# Reproduces github.com/arkeep-io/arkeep's deploy/docker/docker-compose.yml
+# as a template (verified against that file 2026-10-01) rather than
+# vendoring it as a submodule -- it's small and stable, unlike Wazuh's
+# cert-heavy multi-file setup (which IS vendored, see stacks/wazuh/).
+#
+# Secrets (arkeep_secret_key, arkeep_agent_secret) come from your private
+# fleet-config repo's group_vars/all/vault.yml. arkeep_agent_secret in
+# particular MUST be in group_vars/all/ (not a per-host file) since the
+# arkeep_agent role on every other host needs the exact same value.
+
+arkeep_server_dir: /opt/arkeep-server
+arkeep_server_http_port: 8080
+arkeep_server_grpc_port: 9090
+arkeep_server_log_level: info
+
+# Set this once Traefik (from the geotraefik repo) is fronting this node --
+# see hosts/roles/arkeep_server/README.md. Required for the agent enrollment
+# flow to work through a reverse proxy, and for password-reset email links.
+arkeep_server_base_url: ""
+
+# Set to a shared external Docker network name (created once with
+# `docker network create <name>`) when Traefik is fronting this node, so
+# Traefik can reach the server by container name instead of a host port.
+# Leave empty for a standalone deployment with no reverse proxy (compose's
+# own default network is used).
+arkeep_server_network: ""

@@ -1,0 +1,40 @@
+---
+# Applied to tag:arkeep-agent. Deploys the Arkeep agent via Docker Compose
+# -- it connects outbound to the arkeep_server host, no inbound ports
+# needed. See defaults/main.yml for what's expected from your private
+# fleet-config repo.
+
+- name: Fail fast if the Arkeep server address isn't configured
+  ansible.builtin.fail:
+    msg: >-
+      arkeep_server_addr is not set -- it's the gRPC host:port of your
+      tag:arkeep-server host (e.g. its Tailscale address plus :9090), set
+      in your fleet-config repo's group_vars.
+  when: arkeep_server_addr is not defined or not arkeep_server_addr
+
+- name: Fail fast if the shared agent secret isn't configured
+  ansible.builtin.fail:
+    msg: >-
+      arkeep_agent_secret is not set -- it comes from your private
+      fleet-config repo's group_vars/all/vault.yml and must be identical
+      to the value hosts/roles/arkeep_server uses.
+  when: arkeep_agent_secret is not defined or not arkeep_agent_secret
+
+- name: Create Arkeep agent directory
+  ansible.builtin.file:
+    path: "{{ arkeep_agent_dir }}"
+    state: directory
+    mode: "0750"
+
+- name: Write Arkeep agent compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ arkeep_agent_dir }}/docker-compose.yml"
+    mode: "0640"
+  register: _arkeep_agent_compose
+
+- name: Start Arkeep agent
+  community.docker.docker_compose_v2:
+    project_src: "{{ arkeep_agent_dir }}"
+    state: present
+    pull: "{{ 'always' if _arkeep_agent_compose.changed else 'missing' }}"
