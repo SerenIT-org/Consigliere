@@ -81,34 +81,52 @@ No static inventory file — `hosts/inventory/tailscale.yml` uses the
 Tailscale ACL tags (`tag:server`, `tag:mac`, `tag:swarm-manager`, ...) so
 new hosts join their group automatically as the tailnet grows.
 
+## Public framework, private fleet config
+
+This repo is meant to be public and generic — roles, the playbook, and a
+tag-based Tailscale inventory config, with no site-specific values or
+secrets anywhere in it. Everything specific to *your* actual fleet
+(group_vars, host_vars, ansible-vault secrets) lives in a **separate,
+private repo** you create from the template in
+[fleet-config.example/](fleet-config.example/). See its README for setup.
+
 ## Bootstrapping a brand-new host
 
-A fresh host has neither Ansible nor this repo yet, so `ansible-pull`
-can't be the *first* step — see `hosts/bootstrap/bootstrap.sh`, which:
+A fresh host has neither repo nor Ansible yet, so reconciliation can't be
+the *first* step — see `hosts/bootstrap/bootstrap.sh`, which:
 
 1. Installs `git` + `ansible`
-2. Runs one immediate `ansible-pull` against this repo
-3. Installs + enables the `consigliere-pull.service`/`.timer` systemd units so
-   future runs happen on schedule without intervention
+2. Clones this framework repo
+3. Runs `hosts/bootstrap/reconcile.sh` once, which also clones your private
+   fleet-config repo, symlinks its `group_vars`/`host_vars` into place, and
+   runs the playbook
+4. Installs + enables `fleet-reconcile.service`/`.timer` so future runs
+   happen on schedule without intervention — each run re-syncs both repos
+   from scratch, so drift in either gets corrected automatically
 
 ## Secrets
 
-Nothing sensitive is committed in plaintext — Tailscale auth keys, Swarm
-join tokens, etc. are expected via Ansible Vault or an external secret
-source (TODO: pick one — see open decisions below).
+Nothing sensitive is committed in this repo, ever — Tailscale auth keys,
+Swarm join tokens, backup credentials, etc. all live in your private
+fleet-config repo's ansible-vault-encrypted `group_vars/all/vault.yml`.
+See [fleet-config.example/](fleet-config.example/) for the convention.
 
 ## CI
 
 `.github/workflows/lint.yml` runs `ansible-lint` + `yamllint` on every
-push/PR. Since pushes to `main` are what `ansible-pull` actually applies
+push/PR. Since pushes to `main` are what reconciliation actually applies
 to live hosts, this lint gate is effectively the change-approval step —
-review PRs like it.
+review PRs like it. (Your private fleet-config repo should have its own
+equivalent gate — this one only covers the framework.)
 
 ## Open decisions (not yet settled)
 
-- Where secrets (Tailscale authkeys, swarm join tokens) actually live —
-  Ansible Vault committed to the repo, or pulled from an external store?
-- Where git is hosted — self-hosted Gitea on the tailnet vs GitHub.
+- Naming — "serenIT" vs "Consigliere" vs something else (conformIT was
+  raised too). Internal docs still say "Consigliere"; infra-level names
+  (env vars, systemd units) were deliberately made name-agnostic so this
+  doesn't need a second mass-rename once it's settled.
+- Where this framework repo itself is hosted — currently GitHub
+  (`github.com/almadon/consigliere`), presumably staying there.
 - Whether `tag:swarm-manager` join tokens get regenerated/rotated, and how.
 - Provisioning substrate for Terraform (hypervisor/cloud/bare-metal mix) —
   needed before the provisioning layer can be scaffolded.

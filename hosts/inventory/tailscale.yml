@@ -4,7 +4,7 @@
 # static host list to maintain.
 #
 # Requires TAILSCALE_API_KEY (or oauth client id/secret) in the environment
-# the inventory is evaluated in (ansible-pull's systemd unit, Semaphore's
+# the inventory is evaluated in (reconcile.sh's systemd unit, Semaphore's
 # task env, and your own shell for ad-hoc runs).
 #
 # NOTE: verify option names against the installed collection version with
@@ -26,3 +26,5 @@ groups:
   server: "'tag:server' in tags"
   mac: "'tag:mac' in tags"
   wazuh_manager: "'tag:wazuh-manager' in tags"
+  backup_clients: "'tag:backup-client' in tags"
+  backup_server: "'tag:backup-server' in tags"

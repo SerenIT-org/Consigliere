@@ -1,0 +1,16 @@
+---
+# All real values (backup_repo_url, backup_paths_default, backup_retention,
+# and the backup_restic_password/backup_s3_access_key/backup_s3_secret_key
+# vault secrets) come from your PRIVATE fleet-config repo -- see
+# fleet-config.example/group_vars/backup_clients.yml and
+# fleet-config.example/group_vars/all/vault.yml.example. Nothing here is a
+# real value; this file only wires names together and sets non-secret,
+# safe-to-be-public knobs (the schedule).
+#
+# Engine is restic, to an offsite S3-compatible bucket. Which console/agent
+# fronts this later (Arkeep vs Zerobyte) is a separate, undecided layer --
+# this role only sets up restic itself.
+
+backup_paths: "{{ backup_paths_default }}"   # override per-host in host_vars/ if needed
+
+backup_schedule: "OnCalendar=daily"   # systemd timer syntax, see systemd.time(7)

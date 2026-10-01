@@ -1,0 +1,9 @@
+[Unit]
+Description=Fleet reconciliation run (framework + private fleet-config)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/fleet-reconcile.env
+ExecStart=/opt/fleet-reconcile/framework/hosts/bootstrap/reconcile.sh

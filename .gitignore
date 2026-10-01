@@ -6,3 +6,10 @@
 __pycache__/
 *.pyc
 .ansible/
+
+# This is a PUBLIC framework repo -- site-specific vars and secrets live in
+# your own private fleet-config repo instead (see fleet-config.example/ and
+# hosts/bootstrap/reconcile.sh). These paths get symlinked in from there at
+# runtime and must never be committed here.
+/hosts/group_vars/
+/hosts/host_vars/

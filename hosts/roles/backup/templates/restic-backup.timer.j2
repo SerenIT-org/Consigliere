@@ -1,0 +1,10 @@
+[Unit]
+Description=Run restic backup + prune on a schedule
+
+[Timer]
+{{ backup_schedule }}
+RandomizedDelaySec=15min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

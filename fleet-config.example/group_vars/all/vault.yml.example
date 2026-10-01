@@ -1,0 +1,16 @@
+---
+# In your real fleet-config repo: copy this to group_vars/all/vault.yml,
+# fill in real values, then encrypt it in place -- never commit the
+# plaintext version:
+#
+#   cp vault.yml.example vault.yml
+#   # edit vault.yml with real values
+#   ansible-vault encrypt vault.yml
+#
+# reconcile.sh passes --vault-password-file automatically if a .vault_pass
+# file exists at the root of your fleet-config repo; otherwise run
+# ansible-playbook by hand with --ask-vault-pass.
+
+backup_restic_password: CHANGEME
+backup_s3_access_key: CHANGEME
+backup_s3_secret_key: CHANGEME

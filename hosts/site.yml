@@ -1,9 +1,9 @@
 ---
-# Entry point for both ansible-pull (scheduled, on every host) and Semaphore
+# Entry point for both reconcile.sh (scheduled, on every host) and Semaphore
 # (on-demand / webhook-triggered). Keep this file boring — real logic lives
 # in the roles.
 
-- name: Consigliere baseline + maintenance
+- name: Fleet baseline + maintenance
   hosts: all
   become: true
   roles:
@@ -17,3 +17,9 @@
   become: true
   roles:
     - wazuh_host
+
+- name: Backup clients
+  hosts: backup_clients
+  become: true
+  roles:
+    - backup

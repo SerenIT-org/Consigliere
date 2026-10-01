@@ -3,7 +3,7 @@
 # Deliberately separate from hosts/site.yml — different package manager,
 # different service manager, and no security-posture role yet.
 
-- name: Consigliere macOS baseline
+- name: Fleet macOS baseline
   hosts: localhost
   connection: local
   roles:
