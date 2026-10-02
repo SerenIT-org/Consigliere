@@ -1,0 +1,35 @@
+# Managed by Ansible (hosts/roles/semaphore) -- edits get overwritten.
+services:
+  semaphore:
+    image: semaphoreui/semaphore:latest
+    container_name: semaphore
+    restart: unless-stopped
+{% if semaphore_network %}
+    networks:
+      - {{ semaphore_network }}
+{% else %}
+    ports:
+      - "{{ semaphore_port }}:3000"
+{% endif %}
+    environment:
+      SEMAPHORE_DB_DIALECT: sqlite
+      SEMAPHORE_DB: /etc/semaphore/semaphore.sqlite
+      SEMAPHORE_ADMIN: "{{ semaphore_admin_name }}"
+      SEMAPHORE_ADMIN_NAME: "{{ semaphore_admin_name }}"
+      SEMAPHORE_ADMIN_EMAIL: "{{ semaphore_admin_email }}"
+      SEMAPHORE_ADMIN_PASSWORD: "{{ semaphore_admin_password }}"
+      SEMAPHORE_ACCESS_KEY_ENCRYPTION: "{{ semaphore_access_key_encryption }}"
+      SEMAPHORE_PLAYBOOK_PATH: /tmp/semaphore/
+    volumes:
+      - semaphore-config:/etc/semaphore
+      - semaphore-data:/var/lib/semaphore
+
+volumes:
+  semaphore-config:
+  semaphore-data:
+{% if semaphore_network %}
+
+networks:
+  {{ semaphore_network }}:
+    external: true
+{% endif %}

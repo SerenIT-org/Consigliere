@@ -31,3 +31,4 @@ groups:
   arkeep_agent: "'tag:arkeep-agent' in tags"
   arcane_manager: "'tag:arcane-manager' in tags"
   arcane_agent: "'tag:arcane-agent' in tags"
+  semaphore: "'tag:semaphore' in tags"

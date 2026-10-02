@@ -51,6 +51,7 @@ export async function listCollectionDocuments(
 ): Promise<OutlineDocumentSummary[]> {
   const res = await outlineFetch<{ data: OutlineDocumentSummary[] }>("documents.list", {
     collectionId,
+    limit: 100, // Outline's default page is 25; no pagination loop yet
   });
   return res.data;
 }

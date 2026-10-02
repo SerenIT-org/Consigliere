@@ -14,7 +14,10 @@ export class OutlineProvider implements MachineProvider {
     return Promise.all(
       summaries.map(async (doc) => {
         const full = await getDocument(doc.id);
-        return parseMachineDoc(doc.id, doc.url, full.text);
+        // Outline returns document URLs as site-relative paths; make them absolute
+        // so "Edit in Outline" doesn't resolve against this app's own host.
+        const base = (process.env.OUTLINE_API_URL ?? "").replace(/\/+$/, "");
+        return parseMachineDoc(doc.id, new URL(doc.url, base + "/").toString(), full.text);
       })
     );
   }

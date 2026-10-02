@@ -95,10 +95,12 @@ function extractFirstTable(text: string): Record<string, string> {
     const line = lines[i];
     if (!line?.startsWith("|")) break;
 
+    // Split on unescaped pipes only; a backslash-escaped pipe inside a cell is a literal pipe
+    // (how Outline/GFM writes one), so it must survive into the value.
     const cells = line
-      .split("|")
+      .split(/(?<!\\)\|/)
       .slice(1, -1)
-      .map((c) => c.trim());
+      .map((c) => c.trim().replace(/\\\|/g, "|"));
     if (cells.length < 2) continue;
 
     const [key, ...rest] = cells;

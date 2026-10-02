@@ -33,7 +33,7 @@ VAULT_PASSWORD_FILE="${VAULT_PASSWORD_FILE:-}"
 
 echo "==> Installing git + ansible"
 apt-get update
-apt-get install -y git ansible
+apt-get install -y git ansible curl
 
 echo "==> Installing host-local credentials"
 install -d -m 0700 "$CRED_DIR"
@@ -50,6 +50,8 @@ FRAMEWORK_REPO_URL=$FRAMEWORK_REPO_URL
 FRAMEWORK_REPO_BRANCH=$FRAMEWORK_REPO_BRANCH
 FLEET_CONFIG_REPO_URL=$FLEET_CONFIG_REPO_URL
 FLEET_CONFIG_REPO_BRANCH=$FLEET_CONFIG_REPO_BRANCH
+HEARTBEAT_URL="${HEARTBEAT_URL:-}"
+HEARTBEAT_FAIL_URL="${HEARTBEAT_FAIL_URL:-}"
 EOF
 chmod 600 /etc/fleet-reconcile.env
 

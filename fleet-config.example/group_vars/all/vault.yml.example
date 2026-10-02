@@ -20,3 +20,7 @@ arkeep_secret_key: CHANGEME
 
 # arcane_manager only. Generate: openssl rand -base64 32
 arcane_encryption_key: CHANGEME
+
+# semaphore only. Generate: openssl rand -base64 32 (admin password: your choice)
+semaphore_admin_password: CHANGEME
+semaphore_access_key_encryption: CHANGEME

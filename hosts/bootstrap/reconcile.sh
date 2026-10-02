@@ -23,6 +23,19 @@ FRAMEWORK_REPO_BRANCH="${FRAMEWORK_REPO_BRANCH:-main}"
 : "${FLEET_CONFIG_REPO_URL:?Set FLEET_CONFIG_REPO_URL to your PRIVATE fleet-config repo}"
 FLEET_CONFIG_REPO_BRANCH="${FLEET_CONFIG_REPO_BRANCH:-main}"
 
+# Optional heartbeat so a host that fails or silently stops reconciling is
+# noticed. HEARTBEAT_URL is pinged on success; HEARTBEAT_FAIL_URL on failure
+# (defaults to "$HEARTBEAT_URL/fail", the healthchecks.io convention; for
+# Uptime Kuma push monitors set both explicitly, e.g. ...?status=up and
+# ...?status=down). Failures to ping never fail the run itself.
+HEARTBEAT_URL="${HEARTBEAT_URL:-}"
+HEARTBEAT_FAIL_URL="${HEARTBEAT_FAIL_URL:-${HEARTBEAT_URL:+$HEARTBEAT_URL/fail}}"
+heartbeat() {
+  [ -n "$1" ] || return 0
+  curl -fsS -m 10 --retry 2 -o /dev/null "$1" || true
+}
+trap 'rc=$?; if [ "$rc" -eq 0 ]; then heartbeat "$HEARTBEAT_URL"; else heartbeat "$HEARTBEAT_FAIL_URL"; fi' EXIT
+
 WORKDIR="${RECONCILE_WORKDIR:-/opt/fleet-reconcile}"
 FRAMEWORK_DIR="$WORKDIR/framework"
 FLEET_CONFIG_DIR="$WORKDIR/fleet-config"

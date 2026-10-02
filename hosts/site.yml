@@ -46,3 +46,9 @@
   become: true
   roles:
     - arcane_agent
+
+- name: Semaphore (coordination server)
+  hosts: semaphore
+  become: true
+  roles:
+    - semaphore

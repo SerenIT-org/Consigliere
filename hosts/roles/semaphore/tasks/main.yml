@@ -1,0 +1,29 @@
+---
+- name: Fail fast if Semaphore secrets aren't configured
+  ansible.builtin.fail:
+    msg: >-
+      semaphore_admin_password / semaphore_access_key_encryption are not
+      set -- put them in your fleet-config group_vars/all/vault.yml (see
+      vault.yml.example).
+  when: >-
+    semaphore_admin_password is not defined or not semaphore_admin_password or
+    semaphore_access_key_encryption is not defined or not semaphore_access_key_encryption
+
+- name: Create Semaphore directory
+  ansible.builtin.file:
+    path: "{{ semaphore_dir }}"
+    state: directory
+    mode: "0750"
+
+- name: Write Semaphore compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ semaphore_dir }}/docker-compose.yml"
+    mode: "0640"
+  register: _semaphore_compose
+
+- name: Start Semaphore
+  community.docker.docker_compose_v2:
+    project_src: "{{ semaphore_dir }}"
+    state: present
+    pull: "{{ 'always' if _semaphore_compose.changed else 'missing' }}"
