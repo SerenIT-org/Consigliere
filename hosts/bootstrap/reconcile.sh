@@ -27,6 +27,13 @@ WORKDIR="${RECONCILE_WORKDIR:-/opt/fleet-reconcile}"
 FRAMEWORK_DIR="$WORKDIR/framework"
 FLEET_CONFIG_DIR="$WORKDIR/fleet-config"
 
+# Host-local credentials, installed once by bootstrap.sh -- never inside
+# either repo. The deploy key is read-only access to the fleet-config repo
+# only; the vault password decrypts group_vars/all/vault.yml.
+CRED_DIR="${RECONCILE_CRED_DIR:-/etc/fleet-reconcile}"
+DEPLOY_KEY="$CRED_DIR/deploy_key"
+VAULT_PASS_FILE="$CRED_DIR/vault_pass"
+
 mkdir -p "$WORKDIR"
 
 sync_repo() {
@@ -44,19 +51,22 @@ echo "==> Syncing framework repo"
 sync_repo "$FRAMEWORK_REPO_URL" "$FRAMEWORK_REPO_BRANCH" "$FRAMEWORK_DIR"
 
 echo "==> Syncing private fleet-config repo"
-# NOTE: this needs its own read access to a private repo -- an SSH deploy
-# key or credential helper already set up on this host. Provisioning that
-# key is a one-time, out-of-band step (cloud-init, or manual) -- not
-# handled here. See README.md.
+# Uses the host-local deploy key if present (see bootstrap.sh); otherwise
+# falls back to whatever git credentials the host already has.
+if [ -f "$DEPLOY_KEY" ]; then
+  # IdentitiesOnly so this key is used for nothing but this clone/fetch.
+  export GIT_SSH_COMMAND="ssh -i $DEPLOY_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+fi
 sync_repo "$FLEET_CONFIG_REPO_URL" "$FLEET_CONFIG_REPO_BRANCH" "$FLEET_CONFIG_DIR"
+unset GIT_SSH_COMMAND
 
 echo "==> Linking fleet-config into the framework checkout"
 ln -sfn "$FLEET_CONFIG_DIR/group_vars" "$FRAMEWORK_DIR/hosts/group_vars"
 ln -sfn "$FLEET_CONFIG_DIR/host_vars" "$FRAMEWORK_DIR/hosts/host_vars"
 
 VAULT_ARGS=()
-if [ -f "$FLEET_CONFIG_DIR/.vault_pass" ]; then
-  VAULT_ARGS=(--vault-password-file "$FLEET_CONFIG_DIR/.vault_pass")
+if [ -f "$VAULT_PASS_FILE" ]; then
+  VAULT_ARGS=(--vault-password-file "$VAULT_PASS_FILE")
 fi
 
 echo "==> Running playbook"

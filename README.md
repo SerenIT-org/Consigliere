@@ -30,7 +30,7 @@ Roles:
 - `baseline` — users, SSH hardening, unattended-upgrades
 - `tailscale` — install + join (tags-based, see inventory below)
 - `docker` — Docker CE install; `docker_mode: standalone|swarm` toggles swarm-specific tasks
-- `security_posture` — enrolls a Wazuh agent against `security_posture_wazuh_manager_addr`
+- `security_posture` — opt-in via `tag:wazuh-agent` (so nothing breaks before a manager exists); enrolls a Wazuh agent against `security_posture_wazuh_manager_addr`
   (see [stacks/wazuh/](stacks/wazuh/)); replaced an earlier Lynis+maldet
   approach, see VISION.md
 - `wazuh_host` — applied only to `tag:wazuh-manager`, sets the

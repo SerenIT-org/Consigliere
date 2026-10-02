@@ -54,9 +54,6 @@ group_vars/
   arcane_agent.yml        # real values for tag:arcane-agent (except the token, see below)
 host_vars/
   example-arcane-agent-host.yml   # per-host arcane_agent_token (minted from the manager UI, can't be shared)
-.vault_pass                # optional: vault password file, read by reconcile.sh
-                            # if present -- keep this file's own permissions tight
-                            # and don't commit it even here
 ```
 
 See the files in this directory for a concrete starting point.

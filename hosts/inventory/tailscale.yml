@@ -26,6 +26,7 @@ groups:
   server: "'tag:server' in tags"
   mac: "'tag:mac' in tags"
   wazuh_manager: "'tag:wazuh-manager' in tags"
+  wazuh_agent: "'tag:wazuh-agent' in tags"
   arkeep_server: "'tag:arkeep-server' in tags"
   arkeep_agent: "'tag:arkeep-agent' in tags"
   arcane_manager: "'tag:arcane-manager' in tags"

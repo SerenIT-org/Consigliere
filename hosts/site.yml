@@ -10,6 +10,11 @@
     - baseline
     - tailscale
     - docker
+
+- name: Wazuh agents (opt-in via tag:wazuh-agent, once a manager exists)
+  hosts: wazuh_agent
+  become: true
+  roles:
     - security_posture
 
 - name: Wazuh manager host prerequisites
