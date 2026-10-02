@@ -11,12 +11,12 @@
 # agent_arkeep role on every other host needs the exact same value.
 
 server_arkeep_dir: /opt/arkeep-server
-# Address to publish the server's ports on. Empty = all interfaces, and Docker
-# publishing bypasses ufw -- so on a host with a public IP, set this to the
-# host's Tailscale IP to keep Arkeep reachable over the tailnet only. Caveat:
-# Docker can't bind an address that doesn't exist yet, so after a reboot the
-# container may need tailscaled up first (restart policy retries).
-server_arkeep_bind_address: ""
+# Address the published port(s) bind to. Default: this host's Tailscale IP
+# (from the inventory), so the service is reachable over the tailnet only; falls
+# back to 127.0.0.1 if the host has no Tailscale IP. Docker-published ports
+# bypass ufw, so a public VPS must never publish on all interfaces by accident.
+# Set "0.0.0.0" to deliberately listen everywhere.
+server_arkeep_bind_address: "{{ tailscale_ipv4 | default('127.0.0.1', true) }}"
 server_arkeep_http_port: 8080
 server_arkeep_grpc_port: 9090
 server_arkeep_log_level: info

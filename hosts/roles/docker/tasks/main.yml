@@ -24,6 +24,25 @@
     state: present
     update_cache: true
 
+# Services publish ports on the host's Tailscale IP (see the server_* roles).
+# Docker can't bind an address that doesn't exist yet, so after a reboot it must
+# start after tailscaled has brought the interface up.
+- name: Create the docker service drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/docker.service.d
+    state: directory
+    mode: "0755"
+
+- name: Order docker after tailscaled
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/docker.service.d/10-after-tailscale.conf
+    content: |
+      [Unit]
+      After=tailscaled.service
+      Wants=tailscaled.service
+    mode: "0644"
+  notify: Reload systemd for docker
+
 - name: Enable + start docker
   ansible.builtin.systemd:
     name: docker

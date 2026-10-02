@@ -46,7 +46,7 @@ services:
       - {{ server_arcane_network }}
 {% else %}
     ports:
-      - "{{ server_arcane_port }}:3552"
+      - "{{ server_arcane_bind_address }}:{{ server_arcane_port }}:3552"
     networks:
       - arcane-internal
 {% endif %}

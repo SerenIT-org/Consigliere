@@ -13,6 +13,12 @@
 # config/vars/group/all/vault.yml.
 
 server_arcane_dir: /opt/arcane
+# Address the published port(s) bind to. Default: this host's Tailscale IP
+# (from the inventory), so the service is reachable over the tailnet only; falls
+# back to 127.0.0.1 if the host has no Tailscale IP. Docker-published ports
+# bypass ufw, so a public VPS must never publish on all interfaces by accident.
+# Set "0.0.0.0" to deliberately listen everywhere.
+server_arcane_bind_address: "{{ tailscale_ipv4 | default('127.0.0.1', true) }}"
 server_arcane_port: 3552
 
 # Set to a shared external Docker network name once Traefik is fronting
