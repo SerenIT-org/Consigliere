@@ -88,11 +88,15 @@ verified API for *minting* things — enrollment itself is automatic
 itself — previously assumed to just exist; this was a real gap until
 2026-10-01 (Arcane obviously can't GitOps-deploy itself). The manager
 variant uses Arcane's docker-socket-proxy-hardened compose shape since
-that node is also internet-facing (reverse proxy). **One thing that can't
-be automated**: `arcane_agent_token` is minted per-agent from the manager's
-own UI after it's running — no verified API for this, so it's a one-time
-manual step per agent host (goes in that host's `config/vars/host/` file, not the
-shared `config/vars/group/` files).
+that node is also internet-facing (reverse proxy). Agents run in **edge
+mode** (as the manager's agent wizard generates): they poll the manager's
+HTTPS URL outbound, so agent hosts publish no ports and need no firewall
+changes. **One thing that can't be automated**: `arcane_agent_token` is
+generated per agent by that wizard — a one-time manual step per agent host
+(goes in that host's `config/vars/host/` file, not the shared
+`config/vars/group/` files; a leaked token can be invalidated and
+regenerated). The manager itself needn't be deployed by this role: an
+existing manager works, agents just need its URL.
 
 Also note: `getarcaneapp/arcane` is the *current* repo — it moved from
 `ofkm/arcane` at some point before 2026-10-01; links elsewhere may still

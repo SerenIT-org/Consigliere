@@ -10,3 +10,7 @@ arkeep_server_network: ""
 
 # Set once Traefik is fronting this node -- the public HTTPS URL.
 arkeep_server_base_url: ""
+
+# Publish Arkeep's ports on this host's Tailscale IP only (recommended when
+# the host has a public address -- Docker bypasses ufw). Empty = all interfaces.
+arkeep_server_bind_address: ""

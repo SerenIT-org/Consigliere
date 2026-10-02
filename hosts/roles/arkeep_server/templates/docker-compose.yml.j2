@@ -8,11 +8,12 @@ services:
     container_name: arkeep-server
     restart: unless-stopped
     ports:
-      - "{{ arkeep_server_grpc_port }}:9090"   # gRPC (agents) -- kept on a public host port even behind a proxy, see README
+{% set bind = (arkeep_server_bind_address ~ ':') if arkeep_server_bind_address else '' %}
+      - "{{ bind }}{{ arkeep_server_grpc_port }}:9090"   # gRPC (agents)
 {% if arkeep_server_network %}
       - "127.0.0.1:{{ arkeep_server_http_port }}:8080"   # REST API + GUI -- reached via the proxy's shared network, not this host port
 {% else %}
-      - "{{ arkeep_server_http_port }}:8080"   # REST API + GUI -- no reverse proxy configured, exposed directly
+      - "{{ bind }}{{ arkeep_server_http_port }}:8080"   # REST API + GUI
 {% endif %}
     environment:
       ARKEEP_SECRET_KEY: "{{ arkeep_secret_key }}"

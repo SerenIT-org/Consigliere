@@ -4,4 +4,4 @@
 # the Arcane manager's UI), so it belongs in config/vars/host/<hostname>.yml
 # instead. See config/vars/host/example-arcane-agent-host.yml in this directory.
 
-arcane_manager_api_url: "http://CHANGEME-tailscale-address:3552"
+arcane_manager_api_url: "https://CHANGEME-manager-url"

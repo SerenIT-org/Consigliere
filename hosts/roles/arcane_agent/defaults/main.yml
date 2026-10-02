@@ -1,15 +1,18 @@
 ---
-# Applied to tag:arcane-agent (hosts whose Docker the central Arcane
-# manager should also see/manage). Reproduces
-# github.com/getarcaneapp/arcane's docker/examples/compose.agent.yaml
-# (verified 2026-10-01).
+# Applied to tag:arcane-agent (hosts whose Docker the central Arcane manager
+# should also see/manage). Edge-agent mode, matching what the manager's agent
+# wizard generates: the agent polls the manager over its (public HTTPS) URL,
+# so the host needs no inbound ports and no firewall changes.
 #
-# arcane_agent_token: NOT a shared secret like Arkeep's -- it's minted
-# per-agent from the Arcane manager's own UI (an `arc_...` token) after
-# arcane_manager is up and running. No API for generating this has been
-# verified, so it isn't automated here -- put the real value in this
-# host's config/vars/host/ file in your fleet-config repo once you have it.
+# arcane_agent_token: NOT a shared secret -- the manager's agent wizard
+# generates one per agent (an `arc_...` token). It goes in that host's file
+# under config/vars/host/ in your fleet-config repo (not in this public
+# repo, and never in the shared group files). Tokens are cheap to
+# regenerate: if one leaks, invalidate it in the manager and mint another.
+# arcane_manager_api_url (group-wide) is the manager's URL, set in
+# config/vars/group/arcane_agent.yml.
 
 arcane_agent_dir: /opt/arcane-agent
-arcane_agent_port: 3553
-arcane_agent_edge_transport: websocket   # matches Arcane's own default guidance for agents behind NAT/no inbound access
+# "poll" is what the wizard emitted for edge agents; the previous default
+# ("websocket") was a guess from the non-edge example.
+arcane_agent_edge_transport: poll

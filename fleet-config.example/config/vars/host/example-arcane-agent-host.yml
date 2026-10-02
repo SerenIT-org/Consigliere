@@ -1,8 +1,7 @@
 ---
-# Rename this file to the actual hostname (as it appears in `tailscale
-# status` / this host's Tailscale device name) once you have a real token.
+# Rename this file to the host's actual name (as in `tailscale status`).
 #
-# arcane_agent_token is minted per-agent from the Arcane manager's own UI
-# after hosts/roles/arcane_manager is up -- there's no verified API to
-# automate this, so it's a manual one-time step per host.
+# arcane_agent_token is generated per agent by the Arcane manager's
+# edge-agent wizard (Environments -> add an edge agent). It's a manual,
+# one-time step per host, and tokens can be invalidated and regenerated.
 arcane_agent_token: "CHANGEME-arc_..."
