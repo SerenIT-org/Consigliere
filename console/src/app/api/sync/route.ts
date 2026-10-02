@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { authzResponse, requireAdmin } from "@/lib/authz";
 import { syncOverview } from "@/lib/outline/syncOverview";
 
-// POST /api/sync — regenerates the Outline overview table from the
-// per-machine docs (see syncOverview.ts). Callable from the UI's sync
-// button, or on a schedule (e.g. a cron hitting this with a session
-// cookie/service token — TODO once there's an actual scheduler wired up).
+// POST /api/sync -- regenerates the Outline overview table from the
+// per-machine docs (see syncOverview.ts). Mutating, so admin-only with
+// group re-validation against Pocket ID (see lib/authz.ts).
 export async function POST() {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  try {
+    await requireAdmin();
+  } catch (err) {
+    return authzResponse(err);
+  }
 
   try {
     const result = await syncOverview();
@@ -17,7 +18,7 @@ export async function POST() {
   } catch (err) {
     return NextResponse.json(
       { ok: false, error: err instanceof Error ? err.message : String(err) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

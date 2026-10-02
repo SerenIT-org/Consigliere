@@ -51,6 +51,28 @@ anywhere in it. Hitting "Sync overview" in the console (or `POST
 doc's own fields — the per-machine doc stays the only thing you actually
 edit by hand. Everything outside the markers in that doc is left alone.
 
+## Authorization
+
+Signing in with Pocket ID is not enough -- access is gated by Pocket ID
+**user groups** (pattern ported from novak-konzol; see `src/lib/authz.ts`):
+
+- `CONSOLE_VIEWER_GROUP` -- may open the console.
+- `CONSOLE_ADMIN_GROUP` -- may also run mutating actions (currently
+  "Sync overview"); implies viewer.
+
+Both are required; if either is unset **nobody gets in** (fail closed).
+Create the groups in Pocket ID, add users, and allow the `groups` scope on
+the OIDC client. Pages and API routes call `requireViewer()` /
+`requireAdmin()` themselves -- middleware only redirects anonymous browsers.
+`requireAdmin()` re-fetches groups from Pocket ID's userinfo endpoint (read
+from OIDC discovery) so revoking admin applies immediately; if the session's
+provider token has expired it returns 401 and the user must sign in again.
+
+Tested against a mock provider and forged sessions (anonymous, no groups,
+viewer, admin, admin revoked at the provider, expired token, unset config).
+Not tested against a real Pocket ID -- in particular that it emits `groups`
+in the ID token for this client.
+
 ## Setup
 
 1. Copy `.env.example` to `.env.local` (local dev) or `stacks/console/.env`
