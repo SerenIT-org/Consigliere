@@ -30,6 +30,11 @@
     mode: "0640"
   register: _server_arkeep_compose
 
+- name: Create the shared proxy network (so Traefik and this service can reach each other by name)
+  community.docker.docker_network:
+    name: "{{ server_arkeep_network }}"
+  when: server_arkeep_network | length > 0
+
 - name: Start Arkeep server
   community.docker.docker_compose_v2:
     project_src: "{{ server_arkeep_dir }}"

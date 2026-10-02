@@ -13,9 +13,9 @@ exposed (Arkeep's own auto-PKI handles mTLS for agent connections — see
 Arkeep's docs on "Option B" reverse-proxy setups).
 
 To wire this up:
-1. Create a Docker network both stacks will share:
-   `docker network create arkeep-edge` (name is up to you — matches
-   `server_arkeep_network` below).
+1. Pick a name for a Docker network both stacks will share, e.g.
+   `arkeep-edge` (matches `server_arkeep_network` below). This role creates it
+   for you when it's set.
 2. Set `server_arkeep_network: arkeep-edge` in your fleet-config repo's
    config/vars/group/ file for this host. This role then binds port 8080 to
    `127.0.0.1` only and joins the container to that network instead.

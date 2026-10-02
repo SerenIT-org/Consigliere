@@ -27,6 +27,11 @@
     mode: "0640"
   register: _server_arcane_compose
 
+- name: Create the shared proxy network (so Traefik and this service can reach each other by name)
+  community.docker.docker_network:
+    name: "{{ server_arcane_network }}"
+  when: server_arcane_network | length > 0
+
 - name: Start Arcane
   community.docker.docker_compose_v2:
     project_src: "{{ server_arcane_dir }}"
