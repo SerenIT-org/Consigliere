@@ -85,4 +85,4 @@ Scaffolded, not deployed. `vm.max_map_count` prerequisite role
 (`hosts/roles/server_wazuh`) and the `server_wazuh` inventory group are in
 place; the submodule is pinned; the agent side
 (`hosts/roles/agent_wazuh`) is rewritten to enroll against
-`agent_wazuh_manager_addr`. None of this has been run against a live host yet.
+`server_wazuh_addr`. None of this has been run against a live host yet.

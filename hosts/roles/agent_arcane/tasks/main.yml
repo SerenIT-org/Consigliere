@@ -8,7 +8,7 @@
 - name: Fail fast if the Arcane manager API URL isn't configured
   ansible.builtin.fail:
     msg: >-
-      server_arcane_api_url is not set -- it's the the server_arcane group
+      server_arcane_api_url is not set -- it's the server_arcane group
       host's address, e.g. http://100.x.x.x:3552, set in your fleet-config
       repo's config/vars/group/ files.
   when: >-

@@ -10,13 +10,15 @@
 # 2026-08-21) rather than using the deprecated ansible.builtin.apt_key
 # module -- see https://documentation.wazuh.com, Linux agent install.
 
-- name: Fail fast if no Wazuh manager address is configured
+- name: Fail fast if no Wazuh server address is configured
   ansible.builtin.fail:
     msg: >-
-      agent_wazuh_manager_addr is not set -- point it at the the server_wazuh group
+      server_wazuh_addr is not set -- point it at the server_wazuh group
       host's Tailscale address (see stacks/wazuh/README.md) before this
       role can enroll an agent.
-  when: not agent_wazuh_manager_addr
+  when: >-
+    server_wazuh_addr is not defined or not server_wazuh_addr or
+    server_wazuh_addr is search('CHANGEME')
 
 - name: Install apt prerequisites for the Wazuh repo
   ansible.builtin.apt:
@@ -59,10 +61,10 @@
     state: present
     update_cache: true
   environment:
-    WAZUH_MANAGER: "{{ agent_wazuh_manager_addr }}"
+    WAZUH_MANAGER: "{{ server_wazuh_addr }}"
     # NOTE: WAZUH_MANAGER only templates /var/ossec/etc/ossec.conf on *first*
     # install -- apt's state=present is a no-op on repeat ansible-pull runs
-    # once the package exists, so changing agent_wazuh_manager_addr later needs an
+    # once the package exists, so changing server_wazuh_addr later needs an
     # explicit ossec.conf update, not just a re-run of this task. Fine for a
     # single-manager setup; revisit if a second manager ever exists.
 
