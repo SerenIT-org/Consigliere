@@ -11,6 +11,10 @@
 # Secrets come from your fleet-config vault: server_semaphore_admin_password,
 # server_semaphore_access_key_encryption (generate: openssl rand -base64 32).
 
+# Pinned deliberately: 2.19 removed BoltDB, so an unpinned image could change the
+# database story under you. Bump on purpose (v2.19.12 is the stable release of
+# 2026-08-30; the SQLite setup below is supported by it).
+server_semaphore_version: "v2.19.12"
 server_semaphore_dir: /opt/semaphore
 server_semaphore_port: 3000
 server_semaphore_admin_name: admin

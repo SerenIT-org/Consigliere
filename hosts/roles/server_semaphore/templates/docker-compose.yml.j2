@@ -1,7 +1,7 @@
 # Managed by Ansible (hosts/roles/server_semaphore) -- edits get overwritten.
 services:
   semaphore:
-    image: semaphoreui/semaphore:latest
+    image: semaphoreui/semaphore:{{ server_semaphore_version }}
     container_name: semaphore
     restart: unless-stopped
 {% if server_semaphore_network %}
