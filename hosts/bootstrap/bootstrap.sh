@@ -7,16 +7,20 @@
 #
 # Usage:
 #   FRAMEWORK_REPO_URL=... FLEET_CONFIG_REPO_URL=git@github.com:you/fleet.git \
-#   VAULT_PASSWORD_FILE=/path/to/pw ./bootstrap.sh
+#   VAULT_PASSWORDS_DIR=/path/to/dir ./bootstrap.sh
 #
 # Access to the PRIVATE fleet-config repo is set up for you
 # (ensure-access.sh): the host generates its own read-only deploy key and, if
 # FLEET_CONFIG_REGISTER_TOKEN (a GitHub token allowed to manage that repo's
 # deploy keys; used once, never stored) is set, registers it automatically --
 # otherwise it prints the public key and waits for you to add it. To use a key
-# you already have instead, pass FLEET_CONFIG_DEPLOY_KEY_FILE. The vault
-# password can't be generated, so it must be supplied (VAULT_PASSWORD_FILE);
-# delete the source copy afterwards.
+# you already have instead, pass FLEET_CONFIG_DEPLOY_KEY_FILE.
+#
+# Vault passwords can't be generated, so supply them: VAULT_PASSWORDS_DIR is a
+# directory with one file per vault id, named for the id (`base`, plus one per
+# scoped group this host belongs to, e.g. `server_traefik`). Give a host ONLY the
+# passwords for the scopes it should be able to read. They are installed to
+# /etc/fleet-reconcile/vault.d/ (0600); delete the source copies afterwards.
 set -euo pipefail
 
 : "${FRAMEWORK_REPO_URL:?Set FRAMEWORK_REPO_URL to the git remote for this repo}"
@@ -33,7 +37,7 @@ CRED_DIR="/etc/fleet-reconcile"
 # Both get moved into $CRED_DIR with tight permissions; reconcile.sh reads
 # them from there on every run.
 FLEET_CONFIG_DEPLOY_KEY_FILE="${FLEET_CONFIG_DEPLOY_KEY_FILE:-}"
-VAULT_PASSWORD_FILE="${VAULT_PASSWORD_FILE:-}"
+VAULT_PASSWORDS_DIR="${VAULT_PASSWORDS_DIR:-}"
 
 echo "==> Installing git + ansible"
 apt-get update
@@ -44,8 +48,11 @@ install -d -m 0700 "$CRED_DIR"
 if [ -n "$FLEET_CONFIG_DEPLOY_KEY_FILE" ]; then
   install -m 0600 "$FLEET_CONFIG_DEPLOY_KEY_FILE" "$CRED_DIR/deploy_key"
 fi
-if [ -n "$VAULT_PASSWORD_FILE" ]; then
-  install -m 0600 "$VAULT_PASSWORD_FILE" "$CRED_DIR/vault_pass"
+if [ -n "$VAULT_PASSWORDS_DIR" ]; then
+  install -d -m 0700 "$CRED_DIR/vault.d"
+  for f in "$VAULT_PASSWORDS_DIR"/*; do
+    [ -f "$f" ] && install -m 0600 "$f" "$CRED_DIR/vault.d/$(basename "$f")"
+  done
 fi
 
 echo "==> Writing environment file for future reconciliation runs"

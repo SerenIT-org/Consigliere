@@ -50,10 +50,10 @@ FLEET_CONFIG_SUBDIR="${FLEET_CONFIG_SUBDIR:-config}"
 
 # Host-local credentials, installed once by bootstrap.sh -- never inside
 # either repo. The deploy key is read-only access to the fleet-config repo
-# only; the vault password decrypts config/vars/group/all/vault.yml.
+# only; each file in vault.d/ is the password for the vault id of the same name.
 CRED_DIR="${RECONCILE_CRED_DIR:-/etc/fleet-reconcile}"
 DEPLOY_KEY="$CRED_DIR/deploy_key"
-VAULT_PASS_FILE="$CRED_DIR/vault_pass"
+VAULT_DIR="$CRED_DIR/vault.d"   # one password file per vault id (see below)
 
 mkdir -p "$WORKDIR"
 
@@ -93,17 +93,17 @@ unset GIT_SSH_COMMAND
 CONF="$FLEET_CONFIG_DIR/$FLEET_CONFIG_SUBDIR"
 fail() { echo "ERROR: $1 (see consigliere-fleet-template/)" >&2; exit 1; }
 [ -f "$CONF/inventory/groups.yml" ] || fail "$CONF/inventory/groups.yml not found -- the tag-to-group mapping is required, otherwise no role beyond the baseline would ever match"
-for d in group host; do
-  # Fail loudly: a missing dir would silently run every role with no vars.
-  [ -d "$CONF/vars/$d" ] || fail "$CONF/vars/$d not found in the fleet-config repo"
-done
+# Group vars are required (without them every role would run with no config).
+# Per-host vars are optional: git can't track an empty directory, and a fleet
+# with no per-host overrides is perfectly valid.
+[ -d "$CONF/vars/group" ] || fail "$CONF/vars/group not found in the fleet-config repo"
 
 echo "==> Assembling run directory"
 RUN_DIR="$WORKDIR/run"
 rm -rf "$RUN_DIR"
 mkdir -p "$RUN_DIR"
 ln -s "$CONF/vars/group" "$RUN_DIR/group_vars"
-ln -s "$CONF/vars/host" "$RUN_DIR/host_vars"
+if [ -d "$CONF/vars/host" ]; then ln -s "$CONF/vars/host" "$RUN_DIR/host_vars"; fi
 if [ -f "$CONF/site.yml" ]; then
   cp "$CONF/site.yml" "$RUN_DIR/site.yml"
 else
@@ -114,9 +114,16 @@ fi
 export ANSIBLE_ROLES_PATH="$FRAMEWORK_DIR/hosts/roles${CONF:+:$CONF/roles}"
 export ANSIBLE_CONFIG="$FRAMEWORK_DIR/hosts/ansible.cfg"
 
+# Secrets are split by scope: config/vars/group/<group>/vault.yml is encrypted
+# with a vault id named after the group (`base` for group/all). A host holds a
+# password file in vault.d/ ONLY for the scopes it should read, and Ansible
+# only loads a group's files for hosts in that group -- so a host never
+# decrypts (or can decrypt) secrets outside its scopes.
 VAULT_ARGS=()
-if [ -f "$VAULT_PASS_FILE" ]; then
-  VAULT_ARGS=(--vault-password-file "$VAULT_PASS_FILE")
+if [ -d "$VAULT_DIR" ]; then
+  for f in "$VAULT_DIR"/*; do
+    [ -f "$f" ] && VAULT_ARGS+=(--vault-id "$(basename "$f")@$f")
+  done
 fi
 
 echo "==> Running playbook"

@@ -33,18 +33,19 @@ Docker image build, any role on a real host.
 
 ## 1. Bootstrap the host (Debian, as root)
 Get `hosts/bootstrap/bootstrap.sh` onto the host (it's in the framework repo),
-copy the vault password over (the one secret that can't be generated), then:
+copy the vault passwords over (one file per scope this host may read, in a
+directory; passwords can't be generated), then:
 
     FRAMEWORK_REPO_URL=https://github.com/almadon/consigliere.git \
     FLEET_CONFIG_REPO_URL=git@github.com:<you>/<fleet-repo>.git \
     FLEET_CONFIG_REGISTER_TOKEN=<token, optional> \
-    VAULT_PASSWORD_FILE=/root/vault_pass \
+    VAULT_PASSWORDS_DIR=/root/vault-passwords \
     HEARTBEAT_URL=<your heartbeat url> \
     ./hosts/bootstrap/bootstrap.sh
 
 The host generates its own read-only deploy key and has it registered (or
 prints it for you to add and waits), then does the first reconcile and
-installs the timer. `shred` the vault password copy afterwards. Watch
+installs the timer. `shred` the vault password copies afterwards. Watch
 `journalctl -u fleet-reconcile -f`; expect the first failures here.
 
 ## 2. Verify each service (over Tailscale, not the public IP)

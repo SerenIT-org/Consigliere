@@ -52,3 +52,9 @@
   become: true
   roles:
     - server_semaphore
+
+- name: Traefik edge prerequisites
+  hosts: server_traefik
+  become: true
+  roles:
+    - server_traefik

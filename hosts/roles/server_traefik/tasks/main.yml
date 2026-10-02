@@ -1,0 +1,32 @@
+---
+- name: Fail fast if the DNS API key isn't configured
+  ansible.builtin.fail:
+    msg: >-
+      server_traefik_bunny_api_key is not set -- it comes from your fleet
+      repo's config/vars/group/server_traefik/vault.yml (vault id
+      server_traefik), and this host must hold that vault password
+      (see consigliere-fleet-template/README.md, "Secrets").
+  when: >-
+    server_traefik_bunny_api_key is not defined or not server_traefik_bunny_api_key or
+    server_traefik_bunny_api_key is search('CHANGEME')
+
+- name: Create the Traefik directory
+  ansible.builtin.file:
+    path: "{{ server_traefik_dir }}"
+    state: directory
+    mode: "0750"
+
+- name: Write the Traefik secret environment file
+  ansible.builtin.copy:
+    dest: "{{ server_traefik_dir }}/.env"
+    content: |
+      BUNNY_API_KEY={{ server_traefik_bunny_api_key }}
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+
+- name: Create the shared proxy network
+  community.docker.docker_network:
+    name: "{{ server_traefik_network }}"
+  when: server_traefik_network | length > 0

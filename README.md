@@ -130,14 +130,17 @@ the *first* step. `hosts/bootstrap/bootstrap.sh`:
    re-syncs both repos, so drift in either is corrected. Set
    `ANSIBLE_EXTRA_ARGS="--check --diff"` for a read-only drift report.
 
-The vault password is the one thing that can't be generated: supply it with
-`VAULT_PASSWORD_FILE` (installed to `/etc/fleet-reconcile/vault_pass`).
+Vault passwords can't be generated: supply them with `VAULT_PASSWORDS_DIR`, a
+directory with one file per secret scope (installed to
+`/etc/fleet-reconcile/vault.d/`). Give a host only the scopes it should read.
 
 ## Secrets
 
 Nothing sensitive is committed in this repo, ever. Auth keys, join tokens and
 backup credentials live in your private repo's ansible-vault encrypted
-`config/vars/group/all/vault.yml`; the template ships a pre-commit guard that
+`config/vars/group/<scope>/vault.yml`, one file per scope with its own vault id
+(`base` for `all`) so each host can be given only the passwords it needs; the
+template ships a pre-commit guard that
 refuses to commit it unencrypted.
 
 ## CI

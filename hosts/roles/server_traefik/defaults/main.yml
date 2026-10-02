@@ -1,0 +1,19 @@
+---
+# Applied to the server_traefik group (hosts that run Traefik as the edge
+# proxy). This role does NOT deploy Traefik: the stack lives in the separate
+# geotraefik repo. It provides what that stack needs on the host:
+#   - the secret environment file, rendered from your fleet vault (so the DNS
+#     API key reaches only these hosts and never passes through Arcane), and
+#   - the shared Docker network the proxy and the services it fronts join.
+#
+# server_traefik_bunny_api_key is NOT defined here: it comes from your fleet
+# repo's config/vars/group/server_traefik/vault.yml (vault id `server_traefik`),
+# which only these hosts hold the password for. Bunny's API key is account-wide
+# and can't be scoped, so limiting who can decrypt it is the control we have.
+
+server_traefik_dir: /opt/traefik
+
+# The Docker network shared by the proxy and everything it fronts (e.g.
+# "proxynet"). Created if set; services that should be reachable from the
+# proxy join it too. Empty = don't manage a shared network.
+server_traefik_network: ""
