@@ -7,13 +7,15 @@
   ansible.builtin.fail:
     msg: >-
       arkeep_secret_key / arkeep_agent_secret are not set -- these come
-      from your private fleet-config repo's group_vars/all/vault.yml (see
-      fleet-config.example/group_vars/all/vault.yml.example).
+      from your private fleet-config repo's config/vars/group/all/vault.yml (see
+      fleet-config.example/config/vars/group/all/vault.yml.example).
       arkeep_agent_secret must be identical to the value every
       arkeep_agent host uses -- it's a shared secret, not per-host.
   when: >-
     arkeep_secret_key is not defined or not arkeep_secret_key or
-    arkeep_agent_secret is not defined or not arkeep_agent_secret
+    arkeep_secret_key is search('CHANGEME') or
+    arkeep_agent_secret is not defined or not arkeep_agent_secret or
+    arkeep_agent_secret is search('CHANGEME')
 
 - name: Create Arkeep server directory
   ansible.builtin.file:

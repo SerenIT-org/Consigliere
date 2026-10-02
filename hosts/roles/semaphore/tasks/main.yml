@@ -3,11 +3,13 @@
   ansible.builtin.fail:
     msg: >-
       semaphore_admin_password / semaphore_access_key_encryption are not
-      set -- put them in your fleet-config group_vars/all/vault.yml (see
+      set -- put them in your fleet-config config/vars/group/all/vault.yml (see
       vault.yml.example).
   when: >-
     semaphore_admin_password is not defined or not semaphore_admin_password or
-    semaphore_access_key_encryption is not defined or not semaphore_access_key_encryption
+    semaphore_admin_password is search('CHANGEME') or
+    semaphore_access_key_encryption is not defined or not semaphore_access_key_encryption or
+    semaphore_access_key_encryption is search('CHANGEME')
 
 - name: Create Semaphore directory
   ansible.builtin.file:

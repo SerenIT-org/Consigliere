@@ -7,7 +7,7 @@
 # Tailscale address, e.g. 100.x.x.x:9090. Set in your fleet-config repo,
 # not here (it's fleet-specific, not a secret, but still doesn't belong in
 # this public framework).
-# arkeep_agent_secret: shared secret, from group_vars/all/vault.yml --
+# arkeep_agent_secret: shared secret, from config/vars/group/all/vault.yml --
 # MUST match the value hosts/roles/arkeep_server uses.
 arkeep_agent_dir: /opt/arkeep-agent
 arkeep_agent_log_level: info

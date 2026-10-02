@@ -15,10 +15,20 @@ Docker image build, any role on a real host.
 - Tailscale admin: create tags `tag:server`, `tag:arkeep-server`,
   `tag:arcane-manager`, `tag:semaphore`; create an auth key (tagged
   `tag:server`) and an API key/OAuth client for the inventory.
-- Private fleet-config repo created from `fleet-config.example/`, vault
-  filled in and encrypted (arkeep_agent_secret, arkeep_secret_key,
+- Private fleet-config repo created from `fleet-config.example/` (vars live in
+  `config/vars/group/` and `config/vars/host/`), committed and pushed, vault
+  filled in and encrypted (`config/vars/group/all/vault.yml`) (arkeep_agent_secret, arkeep_secret_key,
   arcane_encryption_key, semaphore_admin_password,
   semaphore_access_key_encryption). Read-only deploy key added to it.
+- Pre-flight: no placeholders left in the plain files, and node 2's token file
+  renamed to its hostname:
+
+      grep -rn CHANGEME config/vars | grep -v vault.yml
+
+  (the roles also refuse to run with any `CHANGEME` value, so a miss fails
+  loudly instead of deploying nonsense).
+- In Pocket ID: two user groups (viewer, admin) with you in the admin one, and
+  an OIDC client allowed the `groups` scope.
 - A heartbeat check (healthchecks.io or Uptime Kuma push) for this host.
 
 ## 1. Bootstrap the host (Debian, as root)
@@ -55,6 +65,9 @@ fleet-reconcile -f`. Expect the first failures here.
     cd /opt/fleet-reconcile/framework/stacks/console
     cp ../../console/.env.example .env      # fill in; git-ignored, survives reconciles
     echo CONSOLE_BIND=<tailscale-ip> >> .env
+    # also set in .env: POCKET_ID_URL=<your Pocket ID base URL, i.e. the OIDC
+    # issuer>, CONSOLE_VIEWER_GROUP=<viewer group>, CONSOLE_ADMIN_GROUP=<admin
+    # group>. Unset groups = nobody can sign in (fail closed).
     docker compose up -d --build
 In Pocket ID register an OIDC client with redirect URI
 `<NEXTAUTH_URL>/api/auth/callback/pocket-id`. In Outline: create the

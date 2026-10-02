@@ -6,8 +6,8 @@
 # cert-heavy multi-file setup (which IS vendored, see stacks/wazuh/).
 #
 # Secrets (arkeep_secret_key, arkeep_agent_secret) come from your private
-# fleet-config repo's group_vars/all/vault.yml. arkeep_agent_secret in
-# particular MUST be in group_vars/all/ (not a per-host file) since the
+# fleet-config repo's config/vars/group/all/vault.yml. arkeep_agent_secret in
+# particular MUST be in config/vars/group/all/ (not a per-host file) since the
 # arkeep_agent role on every other host needs the exact same value.
 
 arkeep_server_dir: /opt/arkeep-server

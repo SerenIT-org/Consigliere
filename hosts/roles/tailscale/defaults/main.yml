@@ -10,5 +10,5 @@ tailscale_authkey: "{{ lookup('env', 'TAILSCALE_AUTHKEY') }}"
 tailscale_args: "--ssh"   # enables Tailscale SSH; drop if you'd rather manage keys yourself
 
 # ACL tags applied on join — set per-group/per-host, e.g. in
-# group_vars/swarm_manager.yml: tailscale_tags: "tag:server,tag:swarm-manager"
+# config/vars/group/swarm_manager.yml: tailscale_tags: "tag:server,tag:swarm-manager"
 tailscale_tags: "tag:server"

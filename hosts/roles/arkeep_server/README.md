@@ -17,7 +17,7 @@ To wire this up:
    `docker network create arkeep-edge` (name is up to you — matches
    `arkeep_server_network` below).
 2. Set `arkeep_server_network: arkeep-edge` in your fleet-config repo's
-   group_vars for this host. This role then binds port 8080 to
+   config/vars/group/ file for this host. This role then binds port 8080 to
    `127.0.0.1` only and joins the container to that network instead.
 3. In geotraefik's `stacks/traefik/dynamic/routes.yml`, add a router +
    service pointing at `http://server:8080` (Arkeep's container is named

@@ -10,7 +10,7 @@
 # Arcane never touches the real docker.sock directly.
 #
 # arcane_encryption_key comes from your private fleet-config repo's
-# group_vars/all/vault.yml.
+# config/vars/group/all/vault.yml.
 
 arcane_manager_dir: /opt/arcane
 arcane_manager_port: 3552

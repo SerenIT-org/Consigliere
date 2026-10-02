@@ -4,6 +4,8 @@ services:
     build: ../../console   # or swap for a published image once this has a registry
     restart: unless-stopped
     ports:
-      - "${CONSOLE_BIND:-127.0.0.1}:3000:3000"   # localhost by default; set CONSOLE_BIND to the node's Tailscale IP to reach it over the tailnet
+      # Localhost by default; set CONSOLE_BIND to the node's Tailscale IP to
+      # reach it over the tailnet.
+      - "${CONSOLE_BIND:-127.0.0.1}:3000:3000"
     env_file:
       - .env   # copy from console/.env.example, keep untracked (see .gitignore)

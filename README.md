@@ -97,7 +97,7 @@ new hosts join their group automatically as the tailnet grows.
 This repo is meant to be public and generic — roles, the playbook, and a
 tag-based Tailscale inventory config, with no site-specific values or
 secrets anywhere in it. Everything specific to *your* actual fleet
-(group_vars, host_vars, ansible-vault secrets) lives in a **separate,
+(per-group vars, per-host vars, ansible-vault secrets) lives in a **separate,
 private repo** you create from the template in
 [fleet-config.example/](fleet-config.example/). See its README for setup.
 
@@ -109,7 +109,7 @@ the *first* step — see `hosts/bootstrap/bootstrap.sh`, which:
 1. Installs `git` + `ansible`
 2. Clones this framework repo
 3. Runs `hosts/bootstrap/reconcile.sh` once, which also clones your private
-   fleet-config repo, symlinks its `group_vars`/`host_vars` into place, and
+   fleet-config repo, symlinks its `config/vars/group` and `config/vars/host` into place as `hosts/group_vars`/`hosts/host_vars`, and
    runs the playbook
 4. Installs + enables `fleet-reconcile.service`/`.timer` so future runs
    happen on schedule without intervention — each run re-syncs both repos
@@ -119,7 +119,7 @@ the *first* step — see `hosts/bootstrap/bootstrap.sh`, which:
 
 Nothing sensitive is committed in this repo, ever — Tailscale auth keys,
 Swarm join tokens, backup credentials, etc. all live in your private
-fleet-config repo's ansible-vault-encrypted `group_vars/all/vault.yml`.
+fleet-config repo's ansible-vault-encrypted `config/vars/group/all/vault.yml`.
 See [fleet-config.example/](fleet-config.example/) for the convention.
 
 ## CI

@@ -1,5 +1,6 @@
 ---
-docker_mode: "{{ docker_mode | default('standalone') }}"   # standalone | swarm, set in group_vars
+# standalone | swarm. Override per group in the fleet-config repo (config/vars/group/).
+docker_mode: standalone
 
 docker_users: []   # usernames to add to the `docker` group
 

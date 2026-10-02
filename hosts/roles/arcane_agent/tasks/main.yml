@@ -10,17 +10,21 @@
     msg: >-
       arcane_manager_api_url is not set -- it's the tag:arcane-manager
       host's address, e.g. http://100.x.x.x:3552, set in your fleet-config
-      repo's group_vars.
-  when: arcane_manager_api_url is not defined or not arcane_manager_api_url
+      repo's config/vars/group/ files.
+  when: >-
+    arcane_manager_api_url is not defined or not arcane_manager_api_url or
+    arcane_manager_api_url is search('CHANGEME')
 
 - name: Fail fast if the Arcane agent token isn't configured
   ansible.builtin.fail:
     msg: >-
       arcane_agent_token is not set -- mint one from the Arcane manager's
-      own UI after it's running, then set it in this host's host_vars in
+      own UI after it's running, then set it in this host's config/vars/host/ file in
       your fleet-config repo (see defaults/main.yml -- this isn't a shared
       secret like Arkeep's, so it can't be provisioned ahead of time).
-  when: arcane_agent_token is not defined or not arcane_agent_token
+  when: >-
+    arcane_agent_token is not defined or not arcane_agent_token or
+    arcane_agent_token is search('CHANGEME')
 
 - name: Create Arcane agent directory
   ansible.builtin.file:

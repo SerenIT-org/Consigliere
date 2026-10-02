@@ -20,9 +20,10 @@ yours is the config.
 ```bash
 # somewhere private — a new repo, not a fork of this one
 git init my-fleet-config
-cp -r fleet-config.example/* my-fleet-config/
+cp -r fleet-config.example/config my-fleet-config/
 cd my-fleet-config
-# fill in group_vars/, add host_vars/ as needed, create + encrypt vault.yml
+# fill in config/vars/group/, add config/vars/host/ files as needed,
+# create + encrypt config/vars/group/all/vault.yml
 git add -A && git commit -m "Initial fleet config"
 git remote add origin git@github.com:you/my-fleet-config.git   # make this PRIVATE
 git push -u origin main
@@ -43,17 +44,29 @@ handled by this framework.
 
 ## Shape
 
+Everything lives under `config/` in your private repo (override the
+directory name with `FLEET_CONFIG_SUBDIR` if you prefer another). On every
+reconcile, `hosts/bootstrap/reconcile.sh` links `config/vars/group` and
+`config/vars/host` into the framework checkout as the `group_vars` /
+`host_vars` directories Ansible expects, and fails loudly if either is
+missing.
+
 ```
-group_vars/
-  all.yml                # defaults applied to every host
-  all/
-    vault.yml            # ansible-vault encrypted -- never commit plaintext
-  arkeep_server.yml       # real values for tag:arkeep-server
-  arkeep_agent.yml        # real values for tag:arkeep-agent
-  arcane_manager.yml      # real values for tag:arcane-manager
-  arcane_agent.yml        # real values for tag:arcane-agent (except the token, see below)
-host_vars/
-  example-arcane-agent-host.yml   # per-host arcane_agent_token (minted from the manager UI, can't be shared)
+config/
+  vars/
+    group/
+      all.yml                # defaults applied to every host
+      all/
+        vault.yml            # ansible-vault encrypted -- never commit plaintext
+      arkeep_server.yml       # real values for tag:arkeep-server
+      arkeep_agent.yml        # real values for tag:arkeep-agent
+      arcane_manager.yml      # real values for tag:arcane-manager
+      arcane_agent.yml        # real values for tag:arcane-agent (except the token, see below)
+    host/
+      example-arcane-agent-host.yml   # per-host arcane_agent_token (minted from the manager UI, can't be shared)
 ```
+
+The vault password and the deploy key do **not** live in this repo: they are
+installed on each host under `/etc/fleet-reconcile/` by `bootstrap.sh`.
 
 See the files in this directory for a concrete starting point.

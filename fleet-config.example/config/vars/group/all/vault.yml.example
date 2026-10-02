@@ -1,5 +1,5 @@
 ---
-# In your real fleet-config repo: copy this to group_vars/all/vault.yml,
+# In your real fleet-config repo: copy this to config/vars/group/all/vault.yml,
 # fill in real values, then encrypt it in place -- never commit the
 # plaintext version:
 #

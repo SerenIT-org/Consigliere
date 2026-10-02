@@ -6,12 +6,13 @@
 #      site-specific values live here, ever -- this repo is meant to be
 #      usable by anyone running their own fleet.
 #   2. A private "fleet-config" repo (yours, not this one) holding
-#      group_vars/, host_vars/, and vault-encrypted secrets -- everything
+#      config/vars/group/, config/vars/host/, and vault-encrypted secrets -- everything
 #      specific to *your* actual hosts. See fleet-config.example/ in this
 #      repo for the expected shape.
 #
-# This script clones/updates both, symlinks the private repos group_vars/
-# host_vars into the framework checkout (gitignored there, see
+# This script clones/updates both, symlinks the private repo's
+# config/vars/group and config/vars/host into the framework checkout as
+# hosts/group_vars and hosts/host_vars (gitignored there, see
 # hosts/.gitignore), and runs the playbook. Run on a schedule via
 # fleet-reconcile.timer (see fleet-reconcile.service/.timer in this
 # directory) -- installed by bootstrap.sh.
@@ -39,10 +40,13 @@ trap 'rc=$?; if [ "$rc" -eq 0 ]; then heartbeat "$HEARTBEAT_URL"; else heartbeat
 WORKDIR="${RECONCILE_WORKDIR:-/opt/fleet-reconcile}"
 FRAMEWORK_DIR="$WORKDIR/framework"
 FLEET_CONFIG_DIR="$WORKDIR/fleet-config"
+# Where, inside the private repo, the vars live: <subdir>/vars/group and
+# <subdir>/vars/host (see fleet-config.example/).
+FLEET_CONFIG_SUBDIR="${FLEET_CONFIG_SUBDIR:-config}"
 
 # Host-local credentials, installed once by bootstrap.sh -- never inside
 # either repo. The deploy key is read-only access to the fleet-config repo
-# only; the vault password decrypts group_vars/all/vault.yml.
+# only; the vault password decrypts config/vars/group/all/vault.yml.
 CRED_DIR="${RECONCILE_CRED_DIR:-/etc/fleet-reconcile}"
 DEPLOY_KEY="$CRED_DIR/deploy_key"
 VAULT_PASS_FILE="$CRED_DIR/vault_pass"
@@ -74,8 +78,13 @@ sync_repo "$FLEET_CONFIG_REPO_URL" "$FLEET_CONFIG_REPO_BRANCH" "$FLEET_CONFIG_DI
 unset GIT_SSH_COMMAND
 
 echo "==> Linking fleet-config into the framework checkout"
-ln -sfn "$FLEET_CONFIG_DIR/group_vars" "$FRAMEWORK_DIR/hosts/group_vars"
-ln -sfn "$FLEET_CONFIG_DIR/host_vars" "$FRAMEWORK_DIR/hosts/host_vars"
+VARS_DIR="$FLEET_CONFIG_DIR/$FLEET_CONFIG_SUBDIR/vars"
+for d in group host; do
+  # Fail loudly: a dangling link would silently run every role with no vars.
+  [ -d "$VARS_DIR/$d" ] || { echo "ERROR: $VARS_DIR/$d not found in the fleet-config repo (expected <repo>/$FLEET_CONFIG_SUBDIR/vars/{group,host}; see fleet-config.example/)" >&2; exit 1; }
+done
+ln -sfn "$VARS_DIR/group" "$FRAMEWORK_DIR/hosts/group_vars"
+ln -sfn "$VARS_DIR/host" "$FRAMEWORK_DIR/hosts/host_vars"
 
 VAULT_ARGS=()
 if [ -f "$VAULT_PASS_FILE" ]; then
@@ -84,4 +93,4 @@ fi
 
 echo "==> Running playbook"
 cd "$FRAMEWORK_DIR/hosts"
-ansible-playbook -i inventory/tailscale.yml "${VAULT_ARGS[@]}" site.yml
+ansible-playbook -i inventory/tailscale.yml ${VAULT_ARGS[@]+"${VAULT_ARGS[@]}"} site.yml

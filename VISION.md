@@ -43,7 +43,7 @@ unrelated integrations.
 Settled 2026-10-01: this repo is meant to be public and genuinely reusable
 by someone else running their own fleet, not just a place to park this
 user's own config. That means **zero secrets and zero site-specific
-values** live here — group_vars, host_vars, and all ansible-vault secrets
+values** live here — per-group vars, per-host vars, and all ansible-vault secrets
 live in a separate **private** "fleet-config" repo instead (template at
 [fleet-config.example/](fleet-config.example/)). `hosts/bootstrap/reconcile.sh`
 clones both the framework and that private repo on every reconciliation
@@ -91,8 +91,8 @@ variant uses Arcane's docker-socket-proxy-hardened compose shape since
 that node is also internet-facing (reverse proxy). **One thing that can't
 be automated**: `arcane_agent_token` is minted per-agent from the manager's
 own UI after it's running — no verified API for this, so it's a one-time
-manual step per agent host (goes in that host's `host_vars`, not shared
-group_vars).
+manual step per agent host (goes in that host's `config/vars/host/` file, not the
+shared `config/vars/group/` files).
 
 Also note: `getarcaneapp/arcane` is the *current* repo — it moved from
 `ofkm/arcane` at some point before 2026-10-01; links elsewhere may still

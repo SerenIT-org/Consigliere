@@ -1,6 +1,6 @@
 ---
 # Tailscale address (or hostname) of the tag:wazuh-manager host, see
-# stacks/wazuh/README.md for standing that up. Set this in group_vars once
+# stacks/wazuh/README.md for standing that up. Set this in config/vars/group/ once
 # it exists -- this role refuses to run without it (see tasks/main.yml).
 security_posture_wazuh_manager_addr: ""
 

@@ -8,7 +8,7 @@
 # per-agent from the Arcane manager's own UI (an `arc_...` token) after
 # arcane_manager is up and running. No API for generating this has been
 # verified, so it isn't automated here -- put the real value in this
-# host's host_vars in your fleet-config repo once you have it.
+# host's config/vars/host/ file in your fleet-config repo once you have it.
 
 arcane_agent_dir: /opt/arcane-agent
 arcane_agent_port: 3553
