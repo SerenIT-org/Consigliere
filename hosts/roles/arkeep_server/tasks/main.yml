@@ -1,5 +1,5 @@
 ---
-# Applied to tag:arkeep-server. Deploys the Arkeep server (central backup
+# Applied to the arkeep_server group. Deploys the Arkeep server (central backup
 # console) via Docker Compose -- see defaults/main.yml for what's expected
 # from your private fleet-config repo.
 
@@ -8,7 +8,7 @@
     msg: >-
       arkeep_secret_key / arkeep_agent_secret are not set -- these come
       from your private fleet-config repo's config/vars/group/all/vault.yml (see
-      fleet-config.example/config/vars/group/all/vault.yml.example).
+      consigliere-fleet-template/config/vars/group/all/vault.yml.example).
       arkeep_agent_secret must be identical to the value every
       arkeep_agent host uses -- it's a shared secret, not per-host.
   when: >-

@@ -1,21 +1,25 @@
 #!/usr/bin/env bash
 # Replaces a bare `ansible-pull` with a two-repo reconciliation:
 #
-#   1. This framework repo (public, generic -- roles, playbook, the
-#      tag-based Tailscale inventory plugin config). No secrets, no
-#      site-specific values live here, ever -- this repo is meant to be
-#      usable by anyone running their own fleet.
-#   2. A private "fleet-config" repo (yours, not this one) holding
-#      config/vars/group/, config/vars/host/, and vault-encrypted secrets -- everything
-#      specific to *your* actual hosts. See fleet-config.example/ in this
-#      repo for the expected shape.
+#   1. This framework repo (public, generic): the role library, a default
+#      playbook, and a one-host inventory script. No secrets, no taxonomy,
+#      nothing site-specific -- usable by anyone running their own fleet.
+#   2. A private "fleet-config" repo (yours) that says what *you* want out of
+#      the framework and holds your secrets. Under config/ it provides:
+#        inventory/groups.yml   REQUIRED  your Tailscale tag taxonomy -> the
+#                                         framework's group names
+#        vars/group/, vars/host/ REQUIRED  variables + vault-encrypted secrets
+#        site.yml               optional  which roles run where (default: the
+#                                         framework's hosts/site.yml)
+#        roles/                 optional  your own site-specific roles/apps
+#      (runbooks, stacks and the like also live there, but need no logic here.)
+#      See consigliere-fleet-template/ for the expected shape.
 #
-# This script clones/updates both, symlinks the private repo's
-# config/vars/group and config/vars/host into the framework checkout as
-# hosts/group_vars and hosts/host_vars (gitignored there, see
-# hosts/.gitignore), and runs the playbook. Run on a schedule via
-# fleet-reconcile.timer (see fleet-reconcile.service/.timer in this
-# directory) -- installed by bootstrap.sh.
+# This script clones/updates both, assembles a throwaway run directory from
+# them, and runs the playbook against *this host only* (each host reconciles
+# itself). Run on a schedule via fleet-reconcile.timer, installed by
+# bootstrap.sh. Extra ansible-playbook flags can be passed through
+# ANSIBLE_EXTRA_ARGS, e.g. "--check --diff" for a read-only drift report.
 set -euo pipefail
 
 : "${FRAMEWORK_REPO_URL:?Set FRAMEWORK_REPO_URL to the git remote for this repo}"
@@ -41,7 +45,7 @@ WORKDIR="${RECONCILE_WORKDIR:-/opt/fleet-reconcile}"
 FRAMEWORK_DIR="$WORKDIR/framework"
 FLEET_CONFIG_DIR="$WORKDIR/fleet-config"
 # Where, inside the private repo, the vars live: <subdir>/vars/group and
-# <subdir>/vars/host (see fleet-config.example/).
+# <subdir>/vars/host (see consigliere-fleet-template/).
 FLEET_CONFIG_SUBDIR="${FLEET_CONFIG_SUBDIR:-config}"
 
 # Host-local credentials, installed once by bootstrap.sh -- never inside
@@ -77,14 +81,29 @@ fi
 sync_repo "$FLEET_CONFIG_REPO_URL" "$FLEET_CONFIG_REPO_BRANCH" "$FLEET_CONFIG_DIR"
 unset GIT_SSH_COMMAND
 
-echo "==> Linking fleet-config into the framework checkout"
-VARS_DIR="$FLEET_CONFIG_DIR/$FLEET_CONFIG_SUBDIR/vars"
+CONF="$FLEET_CONFIG_DIR/$FLEET_CONFIG_SUBDIR"
+fail() { echo "ERROR: $1 (see consigliere-fleet-template/)" >&2; exit 1; }
+[ -f "$CONF/inventory/groups.yml" ] || fail "$CONF/inventory/groups.yml not found -- the tag-to-group mapping is required, otherwise no role beyond the baseline would ever match"
 for d in group host; do
-  # Fail loudly: a dangling link would silently run every role with no vars.
-  [ -d "$VARS_DIR/$d" ] || { echo "ERROR: $VARS_DIR/$d not found in the fleet-config repo (expected <repo>/$FLEET_CONFIG_SUBDIR/vars/{group,host}; see fleet-config.example/)" >&2; exit 1; }
+  # Fail loudly: a missing dir would silently run every role with no vars.
+  [ -d "$CONF/vars/$d" ] || fail "$CONF/vars/$d not found in the fleet-config repo"
 done
-ln -sfn "$VARS_DIR/group" "$FRAMEWORK_DIR/hosts/group_vars"
-ln -sfn "$VARS_DIR/host" "$FRAMEWORK_DIR/hosts/host_vars"
+
+echo "==> Assembling run directory"
+RUN_DIR="$WORKDIR/run"
+rm -rf "$RUN_DIR"
+mkdir -p "$RUN_DIR"
+ln -s "$CONF/vars/group" "$RUN_DIR/group_vars"
+ln -s "$CONF/vars/host" "$RUN_DIR/host_vars"
+if [ -f "$CONF/site.yml" ]; then
+  cp "$CONF/site.yml" "$RUN_DIR/site.yml"
+else
+  cp "$FRAMEWORK_DIR/hosts/site.yml" "$RUN_DIR/site.yml"
+fi
+
+# Framework roles first; the fleet's own roles (if any) are also available.
+export ANSIBLE_ROLES_PATH="$FRAMEWORK_DIR/hosts/roles${CONF:+:$CONF/roles}"
+export ANSIBLE_CONFIG="$FRAMEWORK_DIR/hosts/ansible.cfg"
 
 VAULT_ARGS=()
 if [ -f "$VAULT_PASS_FILE" ]; then
@@ -92,5 +111,11 @@ if [ -f "$VAULT_PASS_FILE" ]; then
 fi
 
 echo "==> Running playbook"
-cd "$FRAMEWORK_DIR/hosts"
-ansible-playbook -i inventory/tailscale.yml ${VAULT_ARGS[@]+"${VAULT_ARGS[@]}"} site.yml
+cd "$RUN_DIR"
+# shellcheck disable=SC2086  # ANSIBLE_EXTRA_ARGS is intentionally word-split
+ansible-playbook \
+  -i "$FRAMEWORK_DIR/hosts/inventory/tailscale_self.py" \
+  -i "$CONF/inventory/groups.yml" \
+  ${VAULT_ARGS[@]+"${VAULT_ARGS[@]}"} \
+  ${ANSIBLE_EXTRA_ARGS:-} \
+  site.yml

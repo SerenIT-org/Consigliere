@@ -6,13 +6,17 @@
 # fleet-config repo).
 #
 # Usage:
-#   FRAMEWORK_REPO_URL=... FLEET_CONFIG_REPO_URL=... \
-#   FLEET_CONFIG_DEPLOY_KEY_FILE=/path/to/key VAULT_PASSWORD_FILE=/path/to/pw \
-#   ./bootstrap.sh
+#   FRAMEWORK_REPO_URL=... FLEET_CONFIG_REPO_URL=git@github.com:you/fleet.git \
+#   VAULT_PASSWORD_FILE=/path/to/pw ./bootstrap.sh
 #
-# The deploy key and vault password must already be on this host (scp over
-# Tailscale SSH, cloud-init, etc.) -- they can't come from the private repo
-# they unlock. After this runs, delete the source copies.
+# Access to the PRIVATE fleet-config repo is set up for you
+# (ensure-access.sh): the host generates its own read-only deploy key and, if
+# FLEET_CONFIG_REGISTER_TOKEN (a GitHub token allowed to manage that repo's
+# deploy keys; used once, never stored) is set, registers it automatically --
+# otherwise it prints the public key and waits for you to add it. To use a key
+# you already have instead, pass FLEET_CONFIG_DEPLOY_KEY_FILE. The vault
+# password can't be generated, so it must be supplied (VAULT_PASSWORD_FILE);
+# delete the source copy afterwards.
 set -euo pipefail
 
 : "${FRAMEWORK_REPO_URL:?Set FRAMEWORK_REPO_URL to the git remote for this repo}"
@@ -58,6 +62,10 @@ chmod 600 /etc/fleet-reconcile.env
 echo "==> Cloning framework repo (to get reconcile.sh)"
 mkdir -p "$WORKDIR"
 git clone --branch "$FRAMEWORK_REPO_BRANCH" "$FRAMEWORK_REPO_URL" "$WORKDIR/framework"
+
+echo "==> Making sure this host can read the private fleet-config repo"
+CRED_DIR="$CRED_DIR" FLEET_CONFIG_REPO_URL="$FLEET_CONFIG_REPO_URL" \
+  "$WORKDIR/framework/hosts/bootstrap/ensure-access.sh"
 
 echo "==> Running first reconciliation"
 set -a

@@ -25,16 +25,32 @@
     enabled: true
     state: started
 
+- name: Check tailnet state
+  ansible.builtin.command: tailscale status --json
+  register: _tailscale_status
+  changed_when: false
+  failed_when: false
+
+- name: Work out whether this host still needs to join
+  ansible.builtin.set_fact:
+    _tailscale_needs_join: >-
+      {{ _tailscale_status.rc != 0 or
+         (_tailscale_status.stdout | from_json).BackendState | default('') != 'Running' }}
+
+- name: Fail fast if joining is needed but no auth key is available
+  ansible.builtin.fail:
+    msg: >-
+      This host isn't on the tailnet and tailscale_authkey is empty. Set it in
+      your fleet-config vault, or export TAILSCALE_AUTHKEY for the first run.
+  when: _tailscale_needs_join and not tailscale_authkey
+
 - name: Join tailnet
   ansible.builtin.command:
-    cmd: >
+    cmd: >-
       tailscale up
       --authkey={{ tailscale_authkey }}
-      --advertise-tags={{ tailscale_tags }}
+      {{ ('--advertise-tags=' ~ tailscale_tags) if tailscale_tags else '' }}
       {{ tailscale_args }}
-  register: _tailscale_up
-  changed_when: "'Success' in _tailscale_up.stdout or _tailscale_up.rc == 0"
-  # NOTE: this re-runs `tailscale up` every reconciliation pass since there's
-  # no clean idempotent check baked in yet — harmless (tailscale no-ops if
-  # already joined with the same args) but worth tightening with a
-  # `tailscale status --json` pre-check if that proves noisy in practice.
+  when: _tailscale_needs_join
+  no_log: true   # the command line contains the auth key
+  changed_when: true

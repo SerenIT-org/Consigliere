@@ -38,22 +38,26 @@ diverged from git" across *all* modules, not just OS packages — is the
 throughline that ties them into one project rather than a pile of
 unrelated integrations.
 
-## Public framework, private fleet config
+## Public framework, private fleet repo
 
-Settled 2026-10-01: this repo is meant to be public and genuinely reusable
-by someone else running their own fleet, not just a place to park this
-user's own config. That means **zero secrets and zero site-specific
-values** live here — per-group vars, per-host vars, and all ansible-vault secrets
-live in a separate **private** "fleet-config" repo instead (template at
-[fleet-config.example/](fleet-config.example/)). `hosts/bootstrap/reconcile.sh`
-clones both the framework and that private repo on every reconciliation
-run and symlinks the latter's vars into place — see
-[README.md](README.md#public-framework-private-fleet-config).
+Settled 2026-10-01/02: this repo is public and meant to be reusable by anyone
+running their own fleet. It holds the *framework of all the software* (roles,
+libraries, the console, bootstrap) and **nothing of the operator's**: no
+secrets, no site values, and no taxonomy, since tag names and "which roles run
+where" are the operator's own design.
 
-This is also why infra-level names (env vars, systemd units, the launchd
-label) were deliberately made product-name-agnostic (`FRAMEWORK_REPO_URL`,
-`fleet-reconcile.*`) rather than tied to whatever this project ends up
-called — see Naming below.
+All of that lives in a separate **private fleet repo**, created from
+[consigliere-fleet-template](https://github.com/almadon/consigliere-fleet-template)
+(not a fork: forks of public repos can't be private). Its two purposes:
+**customization** (node taxonomy, composition, apps, runbooks) and
+**secrets/variables**. The framework references that repo and is responsible
+for making sure every host can read it when deployed: each host generates its
+own read-only deploy key and has it registered (`hosts/bootstrap/ensure-access.sh`).
+`hosts/bootstrap/reconcile.sh` then assembles each run from both repos and
+reconciles the host against itself. See [README.md](README.md).
+
+Infra-level names (env vars, systemd units, the launchd label) stay
+product-name-agnostic (`FRAMEWORK_REPO_URL`, `fleet-reconcile.*`).
 
 ## Modules
 
@@ -65,8 +69,8 @@ Stands servers up, doesn't just configure ones that exist. Blocked on
 settling the substrate (hypervisor/cloud/bare-metal — currently a mix).
 
 ### Backups — Arkeep (decided 2026-10-01, over Zerobyte)
-`hosts/roles/arkeep_server` (one host, `tag:arkeep-server`) and
-`hosts/roles/arkeep_agent` (every backed-up host, `tag:arkeep-agent`)
+`hosts/roles/arkeep_server` (one host, the `arkeep_server` group) and
+`hosts/roles/arkeep_agent` (every backed-up host, the `arkeep_agent` group)
 deploy [Arkeep](https://github.com/arkeep-io/arkeep) — restic+rclone under
 the hood, central server + gRPC/mTLS agents, agents auto-enroll via the
 server's HTTP API (no manual cert/token exchange for *this* part — see

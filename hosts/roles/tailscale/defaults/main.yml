@@ -1,14 +1,14 @@
 ---
-# TODO (open decision, see README): where does this secret actually come
-# from? Not committed in plaintext either way. Options:
-#   - ansible-vault encrypted var file, vault password supplied to
-#     ansible-pull via --vault-password-file pointing at a file dropped
-#     out-of-band during bootstrap
-#   - pulled from an external secret store at run time
+# Auth key used only when this host is NOT already on the tailnet (the role
+# never re-runs `tailscale up` on a host that's connected). Prefer setting it
+# in your fleet-config vault (config/vars/group/all/vault.yml) so scheduled
+# runs have it; the environment variable is a bootstrap-time fallback.
 tailscale_authkey: "{{ lookup('env', 'TAILSCALE_AUTHKEY') }}"
 
 tailscale_args: "--ssh"   # enables Tailscale SSH; drop if you'd rather manage keys yourself
 
-# ACL tags applied on join — set per-group/per-host, e.g. in
-# config/vars/group/swarm_manager.yml: tailscale_tags: "tag:server,tag:swarm-manager"
-tailscale_tags: "tag:server"
+# Tags to advertise when joining. Empty (the default) advertises none: tag
+# names are your own taxonomy, so the framework doesn't pick any. If your
+# auth key is tagged, the node gets those tags without this. Set per group in
+# config/vars/group/ only if you want the role to advertise tags itself.
+tailscale_tags: ""

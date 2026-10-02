@@ -1,5 +1,5 @@
 ---
-# Applied to tag:arkeep-agent. Deploys the Arkeep agent via Docker Compose
+# Applied to the arkeep_agent group. Deploys the Arkeep agent via Docker Compose
 # -- it connects outbound to the arkeep_server host, no inbound ports
 # needed. See defaults/main.yml for what's expected from your private
 # fleet-config repo.
@@ -8,7 +8,7 @@
   ansible.builtin.fail:
     msg: >-
       arkeep_server_addr is not set -- it's the gRPC host:port of your
-      tag:arkeep-server host (e.g. its Tailscale address plus :9090), set
+      the arkeep_server group host (e.g. its Tailscale address plus :9090), set
       in your fleet-config repo's config/vars/group/ files.
   when: >-
     arkeep_server_addr is not defined or not arkeep_server_addr or

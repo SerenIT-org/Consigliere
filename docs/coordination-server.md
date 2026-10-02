@@ -11,48 +11,41 @@ Docker image build, any role on a real host.
 - Cloud firewall: allow inbound 80/443 (Traefik) and nothing else public.
   **Docker-published ports bypass ufw**, so ufw alone will not protect
   Arkeep (9090/8080), Arcane (3552), Semaphore (3000). Tailscale traffic is
-  unaffected by the cloud firewall.
-- Tailscale admin: create tags `tag:server`, `tag:arkeep-server`,
-  `tag:arcane-manager`, `tag:semaphore`; create an auth key (tagged
-  `tag:server`) and an API key/OAuth client for the inventory.
-- Private fleet-config repo created from `fleet-config.example/` (vars live in
-  `config/vars/group/` and `config/vars/host/`), committed and pushed, vault
-  filled in and encrypted (`config/vars/group/all/vault.yml`) (arkeep_agent_secret, arkeep_secret_key,
-  arcane_encryption_key, semaphore_admin_password,
-  semaphore_access_key_encryption). Read-only deploy key added to it.
-- Pre-flight: no placeholders left in the plain files, and node 2's token file
-  renamed to its hostname:
-
-      grep -rn CHANGEME config/vars | grep -v vault.yml
-
-  (the roles also refuse to run with any `CHANGEME` value, so a miss fails
-  loudly instead of deploying nonsense).
+  unaffected by the cloud firewall. Where you can, bind to the Tailscale IP
+  (`arkeep_server_bind_address`).
+- Your private fleet repo, created from `consigliere-fleet-template` (private),
+  with `config/inventory/groups.yml` mapping *your* Tailscale tags to the
+  framework's group names, `config/vars/` filled in, and the vault created and
+  encrypted. Run `scripts/preflight.sh --strict` in it: it must pass. The vault
+  needs `arkeep_agent_secret`, `arkeep_secret_key`, `arcane_encryption_key`,
+  `semaphore_admin_password`, `semaphore_access_key_encryption` for the roles
+  this host runs.
+- Tag the host in Tailscale with the tags your `groups.yml` maps to the roles it
+  should run (e.g. the tag you mapped to `arkeep_server`). Hosts already on the
+  tailnet need no auth key; a brand-new host needs one (put `tailscale_authkey`
+  in the vault, or export `TAILSCALE_AUTHKEY` for the first run).
+- A GitHub token that may manage the fleet repo's deploy keys (optional; it
+  lets bootstrap register the host's key automatically, otherwise you'll paste
+  the key it prints).
 - In Pocket ID: two user groups (viewer, admin) with you in the admin one, and
   an OIDC client allowed the `groups` scope.
 - A heartbeat check (healthchecks.io or Uptime Kuma push) for this host.
 
 ## 1. Bootstrap the host (Debian, as root)
-Copy the deploy key and vault password to the host first (scp over
-Tailscale or your provider console), then:
+Get `hosts/bootstrap/bootstrap.sh` onto the host (it's in the framework repo),
+copy the vault password over (the one secret that can't be generated), then:
 
     FRAMEWORK_REPO_URL=https://github.com/almadon/consigliere.git \
-    FLEET_CONFIG_REPO_URL=git@github.com:<you>/<fleet-config>.git \
-    FLEET_CONFIG_DEPLOY_KEY_FILE=/root/deploy_key \
+    FLEET_CONFIG_REPO_URL=git@github.com:<you>/<fleet-repo>.git \
+    FLEET_CONFIG_REGISTER_TOKEN=<token, optional> \
     VAULT_PASSWORD_FILE=/root/vault_pass \
     HEARTBEAT_URL=<your heartbeat url> \
-    TAILSCALE_AUTHKEY=<auth key> TAILSCALE_API_KEY=<api key> \
     ./hosts/bootstrap/bootstrap.sh
 
-(Fetch bootstrap.sh from the framework repo first; `shred` the key and
-password copies afterwards.) The tailscale role reads TAILSCALE_AUTHKEY from
-the environment on first run; the dynamic inventory needs TAILSCALE_API_KEY —
-neither is persisted to /etc/fleet-reconcile.env yet, so scheduled runs will
-lack them until that's wired up (known gap).
-
-Tag the device in Tailscale (`tag:server`, `tag:arkeep-server`,
-`tag:arcane-manager`, `tag:semaphore`) and re-run
-`systemctl start fleet-reconcile.service`; watch `journalctl -u
-fleet-reconcile -f`. Expect the first failures here.
+The host generates its own read-only deploy key and has it registered (or
+prints it for you to add and waits), then does the first reconcile and
+installs the timer. `shred` the vault password copy afterwards. Watch
+`journalctl -u fleet-reconcile -f`; expect the first failures here.
 
 ## 2. Verify each service (over Tailscale, not the public IP)
 - Arcane   http://<tailscale-ip>:3552 — create the admin account.
@@ -83,9 +76,10 @@ Only after 2–3 work. Then wire Arkeep/Arcane/console through it per
 hosts/roles/arkeep_server/README.md and close the direct ports.
 
 ## 5. Then node 2
-Tag `tag:server` + `tag:arkeep-agent`, bootstrap the same way. Add
-`tag:wazuh-agent` / `tag:arcane-agent` only once a Wazuh manager exists /
-you've minted the Arcane token.
+Tag it with the tags your `groups.yml` maps to `arkeep_agent` (and the
+others it should run), bootstrap the same way. Leave the `wazuh_agent` and
+`arcane_agent` tags off until a Wazuh manager exists / you've generated the
+Arcane agent token.
 
 ## Not built yet
 Adoption view in the console, the token broker, scheduled check-mode drift

@@ -22,7 +22,7 @@ it into the `stacks/<service>/docker-compose.yml` convention the rest of
 
 ## Deploying
 
-Run all of this **on the host tagged `tag:wazuh-manager`** — that tag is
+Run all of this **on the host tagged the `wazuh_manager` group** — that tag is
 what makes `hosts/roles/wazuh_host` apply the `vm.max_map_count=262144`
 sysctl the indexer requires (OpenSearch needs more virtual memory areas
 than Linux's default 65530 allows). Tag the host in Tailscale first, run

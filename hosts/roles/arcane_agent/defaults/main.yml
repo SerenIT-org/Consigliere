@@ -1,5 +1,5 @@
 ---
-# Applied to tag:arcane-agent (hosts whose Docker the central Arcane manager
+# Applied to the arcane_agent group (hosts whose Docker the central Arcane manager
 # should also see/manage). Edge-agent mode, matching what the manager's agent
 # wizard generates: the agent polls the manager over its (public HTTPS) URL,
 # so the host needs no inbound ports and no firewall changes.

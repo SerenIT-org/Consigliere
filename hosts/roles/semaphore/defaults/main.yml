@@ -1,5 +1,5 @@
 ---
-# Applied to tag:semaphore (the coordination server). Semaphore UI is for
+# Applied to the semaphore group (the coordination server). Semaphore UI is for
 # run history, scheduled --check (drift) runs and on-demand triggers --
 # NOT a second thing applying changes; reconcile.sh stays the only applier.
 #

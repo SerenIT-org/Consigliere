@@ -11,7 +11,7 @@
     - tailscale
     - docker
 
-- name: Wazuh agents (opt-in via tag:wazuh-agent, once a manager exists)
+- name: Wazuh agents (opt-in via the wazuh_agent group, once a manager exists)
   hosts: wazuh_agent
   become: true
   roles:

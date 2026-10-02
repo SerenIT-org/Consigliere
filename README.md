@@ -30,15 +30,15 @@ Roles:
 - `baseline` — users, SSH hardening, unattended-upgrades
 - `tailscale` — install + join (tags-based, see inventory below)
 - `docker` — Docker CE install; `docker_mode: standalone|swarm` toggles swarm-specific tasks
-- `security_posture` — opt-in via `tag:wazuh-agent` (so nothing breaks before a manager exists); enrolls a Wazuh agent against `security_posture_wazuh_manager_addr`
+- `security_posture` — opt-in via the `wazuh_agent` group (so nothing breaks before a manager exists); enrolls a Wazuh agent against `security_posture_wazuh_manager_addr`
   (see [stacks/wazuh/](stacks/wazuh/)); replaced an earlier Lynis+maldet
   approach, see VISION.md
-- `wazuh_host` — applied only to `tag:wazuh-manager`, sets the
+- `wazuh_host` — applied only to the `wazuh_manager` group, sets the
   `vm.max_map_count` sysctl the Wazuh indexer requires
 - `arkeep_server` / `arkeep_agent` — centralized backups via
   [Arkeep](https://github.com/arkeep-io/arkeep): one host runs the server
-  (`tag:arkeep-server`), every backed-up host runs the agent
-  (`tag:arkeep-agent`), connecting outbound over gRPC
+  (the `arkeep_server` group), every backed-up host runs the agent
+  (the `arkeep_agent` group), connecting outbound over gRPC
 - `arcane_manager` / `arcane_agent` — deploys
   [Arcane](https://github.com/getarcaneapp/arcane) itself (one manager,
   agents elsewhere) — Ansible's job is getting Arcane running at all;
@@ -85,42 +85,60 @@ of hypervisor/cloud/bare-metal and not yet settled, so this hasn't been
 scaffolded. `hosts/bootstrap/` + cloud-init covers "a box already exists,
 get it self-reconciling" in the meantime.
 
-## Inventory
+## Public framework, private fleet repo
 
-No static inventory file — `hosts/inventory/tailscale.yml` uses the
-`community.general.tailscale` dynamic inventory plugin, grouping hosts by
-Tailscale ACL tags (`tag:server`, `tag:mac`, `tag:swarm-manager`, ...) so
-new hosts join their group automatically as the tailnet grows.
+This repo is public and generic: a library of roles, a default playbook, the
+console, bootstrap scripts. It contains **no taxonomy, no site-specific
+values, and no secrets**. Your fleet lives in a **separate private repo** you
+create from [consigliere-fleet-template](https://github.com/almadon/consigliere-fleet-template)
+(GitHub forks of public repos can't be private, so use "Use this template" ->
+Private). That repo has two jobs:
 
-## Public framework, private fleet config
+1. **Customization**: your Tailscale tag taxonomy (`config/inventory/groups.yml`),
+   optionally which roles run where (`config/site.yml`), your own roles/apps,
+   and your runbooks.
+2. **Secrets and variables**: `config/vars/group/`, `config/vars/host/`, and the
+   ansible-vault encrypted `vault.yml`.
 
-This repo is meant to be public and generic — roles, the playbook, and a
-tag-based Tailscale inventory config, with no site-specific values or
-secrets anywhere in it. Everything specific to *your* actual fleet
-(per-group vars, per-host vars, ansible-vault secrets) lives in a **separate,
-private repo** you create from the template in
-[fleet-config.example/](fleet-config.example/). See its README for setup.
+### Inventory and group names
+
+Each host reconciles itself, so the inventory is just that host:
+`hosts/inventory/tailscale_self.py` reports it with its Tailscale tags in the
+`tailscale_tags` variable (read from the local `tailscale status`, no API key).
+Your `groups.yml` maps *your* tag names onto the framework's stable group
+names, which is all `hosts/site.yml` refers to: `arkeep_server`,
+`arkeep_agent`, `arcane_manager`, `arcane_agent`, `semaphore`,
+`wazuh_manager`, `wazuh_agent`. Any extra groups you define are yours (use
+them to attach variables). A host matching no group still gets the baseline.
 
 ## Bootstrapping a brand-new host
 
 A fresh host has neither repo nor Ansible yet, so reconciliation can't be
-the *first* step — see `hosts/bootstrap/bootstrap.sh`, which:
+the *first* step. `hosts/bootstrap/bootstrap.sh`:
 
-1. Installs `git` + `ansible`
-2. Clones this framework repo
-3. Runs `hosts/bootstrap/reconcile.sh` once, which also clones your private
-   fleet-config repo, symlinks its `config/vars/group` and `config/vars/host` into place as `hosts/group_vars`/`hosts/host_vars`, and
-   runs the playbook
-4. Installs + enables `fleet-reconcile.service`/`.timer` so future runs
-   happen on schedule without intervention — each run re-syncs both repos
-   from scratch, so drift in either gets corrected automatically
+1. Installs `git`, `ansible`, `curl`.
+2. Clones this framework repo.
+3. **Grants the host access to your private repo** (`ensure-access.sh`): it
+   generates a read-only deploy key on the host (the private half never leaves
+   it); with `FLEET_CONFIG_REGISTER_TOKEN` it registers the key on GitHub for
+   you, otherwise it prints the public key and waits until you add it.
+4. Runs `hosts/bootstrap/reconcile.sh` once. That clones your private repo,
+   assembles a run directory (your vars + your `groups.yml` + your `site.yml`
+   if you have one, else the default, + framework and fleet roles), and runs
+   the playbook against this host.
+5. Installs `fleet-reconcile.timer` so it repeats on a schedule; each run
+   re-syncs both repos, so drift in either is corrected. Set
+   `ANSIBLE_EXTRA_ARGS="--check --diff"` for a read-only drift report.
+
+The vault password is the one thing that can't be generated: supply it with
+`VAULT_PASSWORD_FILE` (installed to `/etc/fleet-reconcile/vault_pass`).
 
 ## Secrets
 
-Nothing sensitive is committed in this repo, ever — Tailscale auth keys,
-Swarm join tokens, backup credentials, etc. all live in your private
-fleet-config repo's ansible-vault-encrypted `config/vars/group/all/vault.yml`.
-See [fleet-config.example/](fleet-config.example/) for the convention.
+Nothing sensitive is committed in this repo, ever. Auth keys, join tokens and
+backup credentials live in your private repo's ansible-vault encrypted
+`config/vars/group/all/vault.yml`; the template ships a pre-commit guard that
+refuses to commit it unencrypted.
 
 ## CI
 
@@ -138,7 +156,7 @@ equivalent gate — this one only covers the framework.)
   doesn't need a second mass-rename once it's settled.
 - Where this framework repo itself is hosted — currently GitHub
   (`github.com/almadon/consigliere`), presumably staying there.
-- Whether `tag:swarm-manager` join tokens get regenerated/rotated, and how.
+- Whether swarm join tokens get regenerated/rotated, and how.
 - Provisioning substrate for Terraform (hypervisor/cloud/bare-metal mix) —
   needed before the provisioning layer can be scaffolded.
 - Outline API field names in `console/src/lib/outline/client.ts` are

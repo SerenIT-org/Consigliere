@@ -1,5 +1,5 @@
 ---
-# Applied to tag:arkeep-agent (every host that gets backed up). Reproduces
+# Applied to the arkeep_agent group (every host that gets backed up). Reproduces
 # github.com/arkeep-io/arkeep's deploy/docker/docker-compose.agent.yml as a
 # template, verified against that file 2026-10-01.
 #

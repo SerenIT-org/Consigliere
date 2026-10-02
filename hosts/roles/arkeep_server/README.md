@@ -1,7 +1,7 @@
 # arkeep_server
 
 Deploys the central [Arkeep](https://github.com/arkeep-io/arkeep) backup
-console to `tag:arkeep-server` (one host). Agents (`hosts/roles/arkeep_agent`,
+console to the `arkeep_server` group (one host). Agents (`hosts/roles/arkeep_agent`,
 applied to every other host) connect outbound to this over gRPC.
 
 ## Fronting this with Traefik (geotraefik)
