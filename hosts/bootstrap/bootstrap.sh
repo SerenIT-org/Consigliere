@@ -20,10 +20,10 @@
 set -euo pipefail
 
 : "${FRAMEWORK_REPO_URL:?Set FRAMEWORK_REPO_URL to the git remote for this repo}"
-FRAMEWORK_REPO_BRANCH="${FRAMEWORK_REPO_BRANCH:-main}"
+FRAMEWORK_REPO_BRANCH="${FRAMEWORK_REPO_BRANCH:-}"   # empty = the remote default branch
 
 : "${FLEET_CONFIG_REPO_URL:?Set FLEET_CONFIG_REPO_URL to your PRIVATE fleet-config repo}"
-FLEET_CONFIG_REPO_BRANCH="${FLEET_CONFIG_REPO_BRANCH:-main}"
+FLEET_CONFIG_REPO_BRANCH="${FLEET_CONFIG_REPO_BRANCH:-}"   # empty = the remote default branch
 
 WORKDIR="/opt/fleet-reconcile"
 CRED_DIR="/etc/fleet-reconcile"
@@ -61,7 +61,7 @@ chmod 600 /etc/fleet-reconcile.env
 
 echo "==> Cloning framework repo (to get reconcile.sh)"
 mkdir -p "$WORKDIR"
-git clone --branch "$FRAMEWORK_REPO_BRANCH" "$FRAMEWORK_REPO_URL" "$WORKDIR/framework"
+git clone ${FRAMEWORK_REPO_BRANCH:+--branch "$FRAMEWORK_REPO_BRANCH"} "$FRAMEWORK_REPO_URL" "$WORKDIR/framework"
 
 echo "==> Making sure this host can read the private fleet-config repo"
 CRED_DIR="$CRED_DIR" FLEET_CONFIG_REPO_URL="$FLEET_CONFIG_REPO_URL" \

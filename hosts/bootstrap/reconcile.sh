@@ -23,10 +23,10 @@
 set -euo pipefail
 
 : "${FRAMEWORK_REPO_URL:?Set FRAMEWORK_REPO_URL to the git remote for this repo}"
-FRAMEWORK_REPO_BRANCH="${FRAMEWORK_REPO_BRANCH:-main}"
+FRAMEWORK_REPO_BRANCH="${FRAMEWORK_REPO_BRANCH:-}"   # empty = the remote default branch
 
 : "${FLEET_CONFIG_REPO_URL:?Set FLEET_CONFIG_REPO_URL to your PRIVATE fleet-config repo}"
-FLEET_CONFIG_REPO_BRANCH="${FLEET_CONFIG_REPO_BRANCH:-main}"
+FLEET_CONFIG_REPO_BRANCH="${FLEET_CONFIG_REPO_BRANCH:-}"   # empty = the remote default branch
 
 # Optional heartbeat so a host that fails or silently stops reconciling is
 # noticed. HEARTBEAT_URL is pinged on success; HEARTBEAT_FAIL_URL on failure
@@ -57,14 +57,23 @@ VAULT_PASS_FILE="$CRED_DIR/vault_pass"
 
 mkdir -p "$WORKDIR"
 
+# An empty branch means "whatever the remote's default branch is", so a repo
+# whose default is master or main works without configuration.
 sync_repo() {
   local url="$1" branch="$2" dir="$3"
   if [ -d "$dir/.git" ]; then
-    git -C "$dir" fetch origin "$branch"
-    git -C "$dir" checkout "$branch"
-    git -C "$dir" reset --hard "origin/$branch"
-  else
+    git -C "$dir" fetch origin
+    if [ -n "$branch" ]; then
+      git -C "$dir" checkout "$branch"
+      git -C "$dir" reset --hard "origin/$branch"
+    else
+      git -C "$dir" remote set-head origin --auto >/dev/null
+      git -C "$dir" reset --hard origin/HEAD
+    fi
+  elif [ -n "$branch" ]; then
     git clone --branch "$branch" "$url" "$dir"
+  else
+    git clone "$url" "$dir"
   fi
 }
 
