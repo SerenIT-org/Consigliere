@@ -1,0 +1,21 @@
+---
+# Applied to the server_arcane group (one host -- the central GitOps/Docker UI
+# that stacks/ across this repo, geotraefik, etc. get deployed through).
+# Reproduces github.com/getarcaneapp/arcane's docker/examples/compose.proxy.yaml
+# (verified 2026-10-01 -- note the repo moved from ofkm/arcane to
+# getarcaneapp/arcane; update any other links you find to the old URL).
+#
+# Uses the docker-socket-proxy-hardened variant rather than compose.basic.yaml
+# since this node is internet-facing (also runs the reverse proxy) --
+# Arcane never touches the real docker.sock directly.
+#
+# server_arcane_encryption_key comes from your private fleet-config repo's
+# config/vars/group/all/vault.yml.
+
+server_arcane_dir: /opt/arcane
+server_arcane_port: 3552
+
+# Set to a shared external Docker network name once Traefik is fronting
+# this node (see hosts/roles/server_arkeep/README.md -- same pattern
+# applies here). Leave empty to expose Arcane's port directly instead.
+server_arcane_network: ""

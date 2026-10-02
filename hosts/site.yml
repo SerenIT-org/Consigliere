@@ -11,44 +11,44 @@
     - tailscale
     - docker
 
-- name: Wazuh agents (opt-in via the wazuh_agent group, once a manager exists)
-  hosts: wazuh_agent
+- name: Wazuh agents (opt-in via the agent_wazuh group, once a manager exists)
+  hosts: agent_wazuh
   become: true
   roles:
-    - security_posture
+    - agent_wazuh
 
 - name: Wazuh manager host prerequisites
-  hosts: wazuh_manager
+  hosts: server_wazuh
   become: true
   roles:
-    - wazuh_host
+    - server_wazuh
 
 - name: Arkeep server
-  hosts: arkeep_server
+  hosts: server_arkeep
   become: true
   roles:
-    - arkeep_server
+    - server_arkeep
 
 - name: Arkeep agents
-  hosts: arkeep_agent
+  hosts: agent_arkeep
   become: true
   roles:
-    - arkeep_agent
+    - agent_arkeep
 
 - name: Arcane manager
-  hosts: arcane_manager
+  hosts: server_arcane
   become: true
   roles:
-    - arcane_manager
+    - server_arcane
 
 - name: Arcane agents
-  hosts: arcane_agent
+  hosts: agent_arcane
   become: true
   roles:
-    - arcane_agent
+    - agent_arcane
 
 - name: Semaphore (coordination server)
-  hosts: semaphore
+  hosts: server_semaphore
   become: true
   roles:
-    - semaphore
+    - server_semaphore

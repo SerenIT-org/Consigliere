@@ -1,0 +1,21 @@
+---
+# Applied to the server_semaphore group (the coordination server). Semaphore UI is for
+# run history, scheduled --check (drift) runs and on-demand triggers --
+# NOT a second thing applying changes; reconcile.sh stays the only applier.
+#
+# Shape follows Semaphore's documented Docker setup (SQLite, v2.16+):
+# semaphoreui.com/docs/admin-guide/installation/docker (checked 2026-10-02).
+# The two persistence volumes below are my reading of that setup, not
+# verified against a running instance.
+#
+# Secrets come from your fleet-config vault: server_semaphore_admin_password,
+# server_semaphore_access_key_encryption (generate: openssl rand -base64 32).
+
+server_semaphore_dir: /opt/semaphore
+server_semaphore_port: 3000
+server_semaphore_admin_name: admin
+server_semaphore_admin_email: admin@localhost
+
+# Set to a shared external Docker network name when Traefik fronts this
+# node; empty exposes the port directly (bind it to Tailscale only).
+server_semaphore_network: ""

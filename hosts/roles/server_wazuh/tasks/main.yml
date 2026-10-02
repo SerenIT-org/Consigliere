@@ -1,0 +1,14 @@
+---
+# Applied only to the host running the Wazuh manager/indexer/dashboard
+# stack (the server_wazuh group, see your groups.yml) -- not part
+# of the universal baseline, since most fleet hosts only run the agent.
+
+- name: Set vm.max_map_count for the Wazuh indexer (OpenSearch requirement)
+  ansible.posix.sysctl:
+    name: vm.max_map_count
+    value: "262144"
+    sysctl_set: true
+    state: present
+    reload: true
+    # NOTE: OpenSearch documents this as a hard requirement -- the indexer
+    # creates more virtual memory areas than the Linux default (65530) allows.

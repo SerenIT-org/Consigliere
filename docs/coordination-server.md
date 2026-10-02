@@ -12,16 +12,16 @@ Docker image build, any role on a real host.
   **Docker-published ports bypass ufw**, so ufw alone will not protect
   Arkeep (9090/8080), Arcane (3552), Semaphore (3000). Tailscale traffic is
   unaffected by the cloud firewall. Where you can, bind to the Tailscale IP
-  (`arkeep_server_bind_address`).
+  (`server_arkeep_bind_address`).
 - Your private fleet repo, created from `consigliere-fleet-template` (private),
   with `config/inventory/groups.yml` mapping *your* Tailscale tags to the
   framework's group names, `config/vars/` filled in, and the vault created and
   encrypted. Run `scripts/preflight.sh --strict` in it: it must pass. The vault
-  needs `arkeep_agent_secret`, `arkeep_secret_key`, `arcane_encryption_key`,
-  `semaphore_admin_password`, `semaphore_access_key_encryption` for the roles
+  needs `agent_arkeep_secret`, `server_arkeep_secret_key`, `server_arcane_encryption_key`,
+  `server_semaphore_admin_password`, `server_semaphore_access_key_encryption` for the roles
   this host runs.
 - Tag the host in Tailscale with the tags your `groups.yml` maps to the roles it
-  should run (e.g. the tag you mapped to `arkeep_server`). Hosts already on the
+  should run (e.g. the tag you mapped to `server_arkeep`). Hosts already on the
   tailnet need no auth key; a brand-new host needs one (put `tailscale_authkey`
   in the vault, or export `TAILSCALE_AUTHKEY` for the first run).
 - A GitHub token that may manage the fleet repo's deploy keys (optional; it
@@ -73,12 +73,12 @@ Outline response shapes (flagged in outline/client.ts).
 
 ## 4. Traefik (geotraefik repo) — last
 Only after 2–3 work. Then wire Arkeep/Arcane/console through it per
-hosts/roles/arkeep_server/README.md and close the direct ports.
+hosts/roles/server_arkeep/README.md and close the direct ports.
 
 ## 5. Then node 2
-Tag it with the tags your `groups.yml` maps to `arkeep_agent` (and the
-others it should run), bootstrap the same way. Leave the `wazuh_agent` and
-`arcane_agent` tags off until a Wazuh manager exists / you've generated the
+Tag it with the tags your `groups.yml` maps to `agent_arkeep` (and the
+others it should run), bootstrap the same way. Leave the `agent_wazuh` and
+`agent_arcane` tags off until a Wazuh manager exists / you've generated the
 Arcane agent token.
 
 ## Not built yet

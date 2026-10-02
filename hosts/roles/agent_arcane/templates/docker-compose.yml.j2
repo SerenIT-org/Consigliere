@@ -1,0 +1,20 @@
+# Managed by Ansible (hosts/roles/agent_arcane) -- edits here get
+# overwritten on the next reconciliation run. Matches the compose the Arcane
+# manager's "edge agent" wizard generates: the agent connects OUTBOUND to the
+# manager, so no ports are published on this host.
+services:
+  arcane-edge-agent:
+    image: ghcr.io/getarcaneapp/agent:latest
+    container_name: arcane-edge-agent
+    restart: unless-stopped
+    environment:
+      - EDGE_AGENT=true
+      - EDGE_TRANSPORT={{ agent_arcane_edge_transport }}
+      - AGENT_TOKEN={{ agent_arcane_token }}
+      - MANAGER_API_URL={{ server_arcane_api_url }}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - arcane-data:/app/data
+
+volumes:
+  arcane-data:

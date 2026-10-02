@@ -30,16 +30,16 @@ Roles:
 - `baseline` — users, SSH hardening, unattended-upgrades
 - `tailscale` — install + join (tags-based, see inventory below)
 - `docker` — Docker CE install; `docker_mode: standalone|swarm` toggles swarm-specific tasks
-- `security_posture` — opt-in via the `wazuh_agent` group (so nothing breaks before a manager exists); enrolls a Wazuh agent against `security_posture_wazuh_manager_addr`
+- `agent_wazuh` — opt-in via the `agent_wazuh` group (so nothing breaks before a manager exists); enrolls a Wazuh agent against `agent_wazuh_manager_addr`
   (see [stacks/wazuh/](stacks/wazuh/)); replaced an earlier Lynis+maldet
   approach, see VISION.md
-- `wazuh_host` — applied only to the `wazuh_manager` group, sets the
+- `server_wazuh` — applied only to the `server_wazuh` group, sets the
   `vm.max_map_count` sysctl the Wazuh indexer requires
-- `arkeep_server` / `arkeep_agent` — centralized backups via
+- `server_arkeep` / `agent_arkeep` — centralized backups via
   [Arkeep](https://github.com/arkeep-io/arkeep): one host runs the server
-  (the `arkeep_server` group), every backed-up host runs the agent
-  (the `arkeep_agent` group), connecting outbound over gRPC
-- `arcane_manager` / `arcane_agent` — deploys
+  (the `server_arkeep` group), every backed-up host runs the agent
+  (the `agent_arkeep` group), connecting outbound over gRPC
+- `server_arcane` / `agent_arcane` — deploys
   [Arcane](https://github.com/getarcaneapp/arcane) itself (one manager,
   agents elsewhere) — Ansible's job is getting Arcane running at all;
   everything in `stacks/` below is then Arcane's job, not Ansible's
@@ -47,7 +47,7 @@ Roles:
 ### 2. Application/stack layer — `stacks/` (Arcane)
 
 Docker Compose / Swarm stack definitions, one directory per service, once
-Arcane itself is running (see `arcane_manager`/`arcane_agent` above — a
+Arcane itself is running (see `server_arcane`/`agent_arcane` above — a
 bootstrapping step, since Arcane can't GitOps-deploy itself). Arcane then
 watches this tree directly and handles sync, drift detection, and
 redeploys — it owns this layer, Ansible does not touch running containers
@@ -106,9 +106,9 @@ Each host reconciles itself, so the inventory is just that host:
 `hosts/inventory/tailscale_self.py` reports it with its Tailscale tags in the
 `tailscale_tags` variable (read from the local `tailscale status`, no API key).
 Your `groups.yml` maps *your* tag names onto the framework's stable group
-names, which is all `hosts/site.yml` refers to: `arkeep_server`,
-`arkeep_agent`, `arcane_manager`, `arcane_agent`, `semaphore`,
-`wazuh_manager`, `wazuh_agent`. Any extra groups you define are yours (use
+names, which is all `hosts/site.yml` refers to: `server_arkeep`,
+`agent_arkeep`, `server_arcane`, `agent_arcane`, `server_semaphore`,
+`server_wazuh`, `agent_wazuh` (pattern: `<server|agent>_<app>`). Any extra groups you define are yours (use
 them to attach variables). A host matching no group still gets the baseline.
 
 ## Bootstrapping a brand-new host
