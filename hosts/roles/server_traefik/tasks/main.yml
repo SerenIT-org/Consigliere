@@ -1,30 +1,52 @@
 ---
-- name: Fail fast if the DNS API key isn't configured
-  ansible.builtin.fail:
-    msg: >-
-      server_traefik_bunny_api_key is not set -- it comes from your fleet
-      repo's config/vars/group/server_traefik/vault.yml (vault id
-      server_traefik), and this host must hold that vault password
-      (see consigliere-fleet-template/README.md, "Secrets").
-  when: >-
-    server_traefik_bunny_api_key is not defined or not server_traefik_bunny_api_key or
-    server_traefik_bunny_api_key is search('CHANGEME')
+- name: Collect this host's routes from every layer that defines them
+  ansible.builtin.set_fact:
+    _server_traefik_routes: >-
+      {{ query('ansible.builtin.varnames', '^server_traefik_routes(_.*)?$')
+         | map('extract', vars) | flatten }}
 
-- name: Create the Traefik directory
+- name: Summarise the routes for validation
+  ansible.builtin.set_fact:
+    _server_traefik_names: "{{ _server_traefik_routes | map(attribute='name', default='') | list }}"
+    _server_traefik_without_backend: >-
+      {{ _server_traefik_routes | rejectattr('backend', 'defined') | list | length }}
+    _server_traefik_without_match: >-
+      {{ _server_traefik_routes | rejectattr('host', 'defined') | rejectattr('rule', 'defined') | list | length }}
+
+- name: Validate the routes
+  ansible.builtin.assert:
+    that:
+      - >-
+        _server_traefik_names | select('match', '^[a-z0-9][a-z0-9-]*$') | list | length
+        == _server_traefik_names | length
+      - _server_traefik_names | unique | list | length == _server_traefik_names | length
+      - _server_traefik_without_backend | int == 0
+      - _server_traefik_without_match | int == 0
+    fail_msg: >-
+      Every server_traefik_routes* entry needs a unique lowercase name (a-z, 0-9, dash),
+      a backend URL, and a host (or a full rule). Check the routes defined for this host.
+    quiet: true
+
+- name: Create the Traefik directories
   ansible.builtin.file:
-    path: "{{ server_traefik_dir }}"
+    path: "{{ item }}"
     state: directory
     mode: "0750"
+  loop:
+    - "{{ server_traefik_dir }}"
+    - "{{ server_traefik_dir }}/dynamic"
 
-- name: Write the Traefik secret environment file
-  ansible.builtin.copy:
-    dest: "{{ server_traefik_dir }}/.env"
-    content: |
-      BUNNY_API_KEY={{ server_traefik_bunny_api_key }}
-    owner: root
-    group: root
-    mode: "0600"
-  no_log: true
+- name: Render Traefik's dynamic configuration
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ server_traefik_dir }}/dynamic/{{ item.dest }}"
+    mode: "0644"
+  loop:
+    - { src: 00-base.yml.j2, dest: 00-base.yml }
+    - { src: 10-routes.yml.j2, dest: 10-routes.yml }
+    - { src: 20-tls.yml.j2, dest: 20-tls.yml }
+  loop_control:
+    label: "{{ item.dest }}"
 
 - name: Create the shared proxy network
   community.docker.docker_network:

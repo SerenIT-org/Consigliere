@@ -39,6 +39,13 @@ Roles:
   [Arkeep](https://github.com/arkeep-io/arkeep): one host runs the server
   (the `server_arkeep` group), every backed-up host runs the agent
   (the `agent_arkeep` group), connecting outbound over gRPC
+- `server_certwarden` / `agent_certwarden` — a central ACME client
+  ([Cert Warden](https://github.com/gregtwallace/certwarden); non-commercial
+  license) issues certificates once, and consumer hosts fetch them as files, so
+  DNS API credentials live on one host
+- `server_traefik` — renders Traefik's dynamic config per host (a shared base,
+  that host's own routes gathered from `server_traefik_routes*` variables, and the
+  fetched certificates); see [its README](hosts/roles/server_traefik/README.md)
 - `server_arcane` / `agent_arcane` — deploys
   [Arcane](https://github.com/getarcaneapp/arcane) itself (one manager,
   agents elsewhere) — Ansible's job is getting Arcane running at all;

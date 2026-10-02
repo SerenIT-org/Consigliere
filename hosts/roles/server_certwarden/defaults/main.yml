@@ -1,0 +1,21 @@
+---
+# Applied to the server_certwarden group (ONE host: the central ACME client).
+# Cert Warden (github.com/gregtwallace/certwarden) issues certificates once and
+# serves them to the hosts that need them (see agent_certwarden), so DNS API
+# credentials live on this one host instead of on every proxy.
+#
+# LICENSE NOTE: Cert Warden is source-available, "personal, private
+# (non-commercial) use" only, all rights reserved. Check that it fits your use.
+#
+# Its DNS-provider credentials (e.g. Bunny) and every private key it manages are
+# stored in its data volume -- treat that volume as the most sensitive thing on
+# this host, and back it up (encrypted).
+
+# Pinned on purpose; bump deliberately (v0.30.1 is the release of 2026-09-05).
+server_certwarden_version: "v0.30.1"
+server_certwarden_dir: /opt/certwarden
+
+# Default: the host's Tailscale IP only (Docker-published ports bypass ufw).
+server_certwarden_bind_address: "{{ tailscale_ipv4 | default('127.0.0.1', true) }}"
+server_certwarden_http_port: 4050
+server_certwarden_https_port: 4055

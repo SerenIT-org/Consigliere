@@ -18,7 +18,7 @@
 #
 # Vault passwords can't be generated, so supply them: VAULT_PASSWORDS_DIR is a
 # directory with one file per vault id, named for the id (`base`, plus one per
-# scoped group this host belongs to, e.g. `server_traefik`). Give a host ONLY the
+# scoped group this host belongs to, e.g. `agent_certwarden`). Give a host ONLY the
 # passwords for the scopes it should be able to read. They are installed to
 # /etc/fleet-reconcile/vault.d/ (0600); delete the source copies afterwards.
 set -euo pipefail

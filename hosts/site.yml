@@ -53,7 +53,19 @@
   roles:
     - server_semaphore
 
-- name: Traefik edge prerequisites
+- name: Cert Warden (central ACME client)
+  hosts: server_certwarden
+  become: true
+  roles:
+    - server_certwarden
+
+- name: Certificate consumers (fetch from Cert Warden)
+  hosts: agent_certwarden
+  become: true
+  roles:
+    - agent_certwarden
+
+- name: Traefik edge configuration
   hosts: server_traefik
   become: true
   roles:

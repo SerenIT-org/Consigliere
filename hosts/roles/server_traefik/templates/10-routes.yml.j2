@@ -1,0 +1,26 @@
+# Managed by Ansible (hosts/roles/server_traefik) -- edits get overwritten.
+# This host's routes, collected from server_traefik_routes* variables.
+{% if _server_traefik_routes | length == 0 %}
+{}
+{% else %}
+http:
+  routers:
+{% for r in _server_traefik_routes %}
+{% set hosts = r.host if (r.host is defined and r.host is not string) else ([r.host] if r.host is defined else []) %}
+    {{ r.name }}:
+      rule: {{ (r.rule | default(hosts | map('regex_replace', '^(.*)$', 'Host(`\\1`)') | join(' || '))) | to_json }}
+      entryPoints: [{{ server_traefik_entrypoint_websecure }}]
+      service: {{ r.name }}
+{% if r.middlewares is defined and r.middlewares | length > 0 %}
+      middlewares: {{ r.middlewares | to_json }}
+{% endif %}
+      tls: {}
+{% endfor %}
+  services:
+{% for r in _server_traefik_routes %}
+    {{ r.name }}:
+      loadBalancer:
+        servers:
+          - url: {{ r.backend | to_json }}
+{% endfor %}
+{% endif %}

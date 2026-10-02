@@ -1,0 +1,11 @@
+# Managed by Ansible (hosts/roles/agent_certwarden). Contains API keys: root only.
+SERVER_URL={{ agent_certwarden_server_url | quote }}
+DEST={{ agent_certwarden_dir | quote }}
+CA_FILE={{ agent_certwarden_ca_file | quote }}
+VERIFY_TLS={{ 'true' if agent_certwarden_verify_tls else 'false' }}
+TOUCH_FILES={{ (agent_certwarden_touch_on_change | join(' ')) | quote }}
+CERTS=(
+{% for c in _agent_certwarden_all_certs %}
+  {{ (c.name ~ ' ' ~ _agent_certwarden_all_keys[c.name].cert ~ '.' ~ _agent_certwarden_all_keys[c.name].key) | quote }}
+{% endfor %}
+)
