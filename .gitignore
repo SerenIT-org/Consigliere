@@ -6,6 +6,7 @@
 __pycache__/
 *.pyc
 .ansible/
+.env
 
 # This is a PUBLIC framework repo -- site-specific vars and secrets live in
 # your own private fleet-config repo instead (see fleet-config.example/ and
