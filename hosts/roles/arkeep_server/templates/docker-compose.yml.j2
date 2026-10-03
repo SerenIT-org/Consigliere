@@ -1,0 +1,53 @@
+# Managed by Ansible (hosts/roles/arkeep_server) -- edits here get
+# overwritten on the next reconciliation run. Change the role's defaults/
+# fleet-config vars instead. Reproduces arkeep-io/arkeep's own
+# deploy/docker/docker-compose.yml (verified 2026-10-01).
+services:
+  server:
+    image: ghcr.io/arkeep-io/arkeep-server:latest
+    container_name: arkeep-server
+    restart: unless-stopped
+    ports:
+{% set bind = (arkeep_server_bind_address ~ ':') if arkeep_server_bind_address else '' %}
+      - "{{ bind }}{{ arkeep_server_grpc_port }}:9090"   # gRPC (agents)
+{% if arkeep_server_network %}
+      - "127.0.0.1:{{ arkeep_server_http_port }}:8080"   # REST API + GUI -- reached via the proxy's shared network, not this host port
+{% else %}
+      - "{{ bind }}{{ arkeep_server_http_port }}:8080"   # REST API + GUI
+{% endif %}
+    environment:
+      ARKEEP_SECRET_KEY: "{{ arkeep_server_secret_key }}"
+      ARKEEP_AGENT_SECRET: "{{ arkeep_agent_secret }}"
+      ARKEEP_DATA_DIR: /var/lib/arkeep/data
+      ARKEEP_DB_DRIVER: sqlite
+      ARKEEP_DB_DSN: /var/lib/arkeep/arkeep.db
+      ARKEEP_HTTP_ADDR: ":8080"
+      ARKEEP_GRPC_ADDR: ":9090"
+      ARKEEP_LOG_LEVEL: "{{ arkeep_server_log_level }}"
+      ARKEEP_BASE_URL: "{{ arkeep_server_base_url }}"
+      TZ: "{{ ansible_date_time.tz | default('UTC') }}"
+      # gRPC TLS: auto-PKI (default) -- the server generates its own CA and
+      # cert under the data dir on first boot; agents auto-enroll with mTLS.
+      # No external cert wired up here -- see Arkeep's own docs if that's needed.
+    volumes:
+      - arkeep-data:/var/lib/arkeep
+{% if arkeep_server_network %}
+    networks:
+      - {{ arkeep_server_network }}
+{% endif %}
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  arkeep-data:
+    driver: local
+{% if arkeep_server_network %}
+
+networks:
+  {{ arkeep_server_network }}:
+    external: true
+{% endif %}

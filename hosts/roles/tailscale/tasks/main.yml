@@ -40,8 +40,9 @@
 - name: Fail fast if joining is needed but no auth key is available
   ansible.builtin.fail:
     msg: >-
-      This host isn't on the tailnet and tailscale_authkey is empty. Set it in
-      your fleet-config vault, or export TAILSCALE_AUTHKEY for the first run.
+      This host isn't on the tailnet and tailscale_authkey is empty. Re-run
+      bootstrap.sh and enter an auth key at the prompt (or export
+      TAILSCALE_AUTHKEY for that run).
   when: _tailscale_needs_join and not tailscale_authkey
 
 - name: Join tailnet

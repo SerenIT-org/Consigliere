@@ -1,0 +1,18 @@
+---
+# Applied to the arcane_agent group (hosts whose Docker the central Arcane manager
+# should also see/manage). Edge-agent mode, matching what the manager's agent
+# wizard generates: the agent polls the manager over its (public HTTPS) URL,
+# so the host needs no inbound ports and no firewall changes.
+#
+# arcane_agent_token: NOT a shared secret -- the manager's agent wizard
+# generates one per agent (an `arc_...` token). It goes in that host's file
+# under config/vars/host/ in your fleet-config repo (not in this public
+# repo, and never in the shared group files). Tokens are cheap to
+# regenerate: if one leaks, invalidate it in the manager and mint another.
+# arcane_server_api_url (group-wide) is the manager's URL, set in
+# config/vars/group/arcane_agent.yml.
+
+arcane_agent_dir: "{{ common_dir | default('/opt/common') }}/arcane"
+# "poll" is what the wizard emitted for edge agents; the previous default
+# ("websocket") was a guess from the non-edge example.
+arcane_agent_edge_transport: poll

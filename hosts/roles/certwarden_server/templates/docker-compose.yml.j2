@@ -1,0 +1,18 @@
+# Managed by Ansible (hosts/roles/certwarden_server) -- edits get overwritten.
+# Not published on purpose: 4060 (http-01 challenge server; we use DNS-01) and
+# 4065/4070 (pprof debug servers).
+services:
+  certwarden:
+    container_name: certwarden
+    image: ghcr.io/gregtwallace/certwarden:{{ certwarden_server_version }}
+    restart: unless-stopped
+    environment:
+      TZ: UTC
+    ports:
+      - "{{ certwarden_server_bind_address }}:{{ certwarden_server_http_port }}:4050"
+      - "{{ certwarden_server_bind_address }}:{{ certwarden_server_https_port }}:4055"
+    volumes:
+      - certwarden-data:/app/data
+
+volumes:
+  certwarden-data:

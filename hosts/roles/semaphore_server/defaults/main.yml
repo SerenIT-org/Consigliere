@@ -1,0 +1,31 @@
+---
+# Applied to the semaphore_server group (the coordination server). Semaphore UI is for
+# run history, scheduled --check (drift) runs and on-demand triggers --
+# NOT a second thing applying changes; reconcile.sh stays the only applier.
+#
+# Shape follows Semaphore's documented Docker setup (SQLite, v2.16+):
+# semaphoreui.com/docs/admin-guide/installation/docker (checked 2026-10-02).
+# The two persistence volumes below are my reading of that setup, not
+# verified against a running instance.
+#
+# Secrets come from your fleet-config secret semaphore.server: semaphore_server_admin_password,
+# semaphore_server_access_key_encryption (generate: openssl rand -base64 32).
+
+# Pinned deliberately: 2.19 removed BoltDB, so an unpinned image could change the
+# database story under you. Bump on purpose (v2.19.12 is the stable release of
+# 2026-08-30; the SQLite setup below is supported by it).
+semaphore_server_version: "v2.19.12"
+semaphore_server_dir: /opt/semaphore
+# Address the published port(s) bind to. Default: this host's Tailscale IP
+# (from the inventory), so the service is reachable over the tailnet only; falls
+# back to 127.0.0.1 if the host has no Tailscale IP. Docker-published ports
+# bypass ufw, so a public VPS must never publish on all interfaces by accident.
+# Set "0.0.0.0" to deliberately listen everywhere.
+semaphore_server_bind_address: "{{ tailscale_ipv4 | default('127.0.0.1', true) }}"
+semaphore_server_port: 3000
+semaphore_server_admin_name: admin
+semaphore_server_admin_email: admin@localhost
+
+# Set to a shared external Docker network name when Traefik fronts this
+# node; empty exposes the port directly (bind it to Tailscale only).
+semaphore_server_network: ""

@@ -1,0 +1,80 @@
+# Managed by Ansible (hosts/roles/arcane_server) -- edits here get
+# overwritten on the next reconciliation run. Reproduces getarcaneapp/arcane's
+# docker/examples/compose.proxy.yaml (verified 2026-10-01).
+services:
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    container_name: arcane-docker-proxy
+    environment:
+      - EVENTS=1
+      - PING=1
+      - VERSION=1
+      - AUTH=0
+      - SECRETS=0
+      - POST=1
+      - BUILD=0
+      - COMMIT=0
+      - CONFIGS=0
+      - CONTAINERS=1
+      - DISTRIBUTION=1
+      - EXEC=1
+      - IMAGES=1
+      - INFO=1
+      - NETWORKS=1
+      - NODES=0
+      - PLUGINS=0
+      - SERVICES=0
+      - SESSION=0
+      - SWARM=0
+      - SYSTEM=0
+      - TASKS=0
+      - VOLUMES=1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - arcane-internal
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  arcane:
+    image: ghcr.io/getarcaneapp/arcane:latest
+    container_name: arcane
+{% if arcane_server_network %}
+    networks:
+      - arcane-internal
+      - {{ arcane_server_network }}
+{% else %}
+    ports:
+      - "{{ arcane_server_bind_address }}:{{ arcane_server_port }}:3552"
+    networks:
+      - arcane-internal
+{% endif %}
+    volumes:
+      - arcane-data:/app/data
+    environment:
+      - ENCRYPTION_KEY={{ arcane_server_encryption_key }}
+      - DOCKER_HOST=tcp://docker-socket-proxy:2375
+    depends_on:
+      - docker-socket-proxy
+    healthcheck:
+      test: ["CMD", "./arcane", "health", "--timeout", "2s"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+    cgroup: host
+    restart: unless-stopped
+
+networks:
+  arcane-internal:
+    driver: bridge
+    name: arcane-internal
+{% if arcane_server_network %}
+  {{ arcane_server_network }}:
+    external: true
+{% endif %}
+
+volumes:
+  arcane-data:
+    name: arcane-data

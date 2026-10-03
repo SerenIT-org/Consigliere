@@ -1,0 +1,14 @@
+# Managed by Ansible (hosts/roles/traefik_server) -- edits get overwritten.
+# Certificates are files written by certwarden_agent (or any issuer) under
+# {{ traefik_server_certs_dir }}, mounted read-only at /certs in the container.
+# Touching this file makes Traefik's file provider reload them after renewal.
+{% if traefik_server_certificates | length == 0 %}
+{}
+{% else %}
+tls:
+  certificates:
+{% for c in traefik_server_certificates %}
+    - certFile: /certs/{{ c }}/fullchain.pem
+      keyFile: /certs/{{ c }}/privkey.pem
+{% endfor %}
+{% endif %}

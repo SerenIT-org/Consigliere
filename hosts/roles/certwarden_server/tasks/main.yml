@@ -1,0 +1,19 @@
+---
+- name: Create the Cert Warden directory
+  ansible.builtin.file:
+    path: "{{ certwarden_server_dir }}"
+    state: directory
+    mode: "0750"
+
+- name: Write the Cert Warden compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ certwarden_server_dir }}/docker-compose.yml"
+    mode: "0640"
+  register: _certwarden_server_compose
+
+- name: Start Cert Warden
+  community.docker.docker_compose_v2:
+    project_src: "{{ certwarden_server_dir }}"
+    state: present
+    pull: "{{ 'always' if _certwarden_server_compose.changed else 'missing' }}"

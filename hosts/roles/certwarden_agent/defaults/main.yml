@@ -1,0 +1,35 @@
+---
+# Applied to the certwarden_agent group: every host that consumes certificates
+# from the central Cert Warden (typically the Traefik hosts).
+#
+# What goes where (layered, so a host only sees what it should):
+#   certwarden_agent_server_url   fleet vars  e.g. http://100.x.y.z:4050
+#   certwarden_agent_certs*       fleet vars  [{name: <Cert Warden certificate name>}]
+#   API keys                      VAULT       one file per certificate:
+#                                 config/secrets/cw/<name>.yml, vault id cw.<name>,
+#                                 containing `cert:` and `key:` (the two API keys)
+# Any variable whose name starts with certwarden_agent_certs is collected, so a
+# group file and one host's file can each contribute. A host reads (and needs
+# the vault password for) only the certificates it lists.
+#
+# Output, per certificate:  <dir>/<name>/fullchain.pem  and  <dir>/<name>/privkey.pem
+
+certwarden_agent_dir: "{{ common_dir | default('/opt/common') }}/certs"
+certwarden_agent_server_url: ""
+# Set by reconcile.sh to the fleet repo's config/secrets.
+certwarden_agent_secrets_dir: "{{ fleet_secrets_dir | default(playbook_dir ~ '/secrets') }}"
+certwarden_agent_certs: []
+
+# Cert Warden presents a self-signed certificate until it has issued one for
+# itself. Preferred: point this at its CA/cert file. Setting verify to false
+# skips verification (acceptable only because the link is already the tailnet).
+certwarden_agent_ca_file: ""
+certwarden_agent_verify_tls: true
+
+# systemd OnCalendar expression for the daily check.
+certwarden_agent_schedule: "*-*-* 03:30:00"
+
+# Files touched after any certificate changes, so Traefik's file provider
+# notices and reloads (only touched if they exist).
+certwarden_agent_touch_on_change:
+  - /opt/traefik/dynamic/20-tls.yml

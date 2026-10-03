@@ -6,8 +6,10 @@
 #      nothing site-specific -- usable by anyone running their own fleet.
 #   2. A private "fleet-config" repo (yours) that says what *you* want out of
 #      the framework and holds your secrets. Under config/ it provides:
-#        inventory/groups.yml   REQUIRED  your Tailscale tag taxonomy -> the
-#                                         framework's group names
+#        inventory/hosts.yml    REQUIRED  your host table: each host (by its
+#                                         Tailscale hostname) and its values
+#        inventory/groups.yml   REQUIRED  turns those values into groups,
+#                                         incl. the framework's <app>_<role>
 #        vars/group/, vars/host/ REQUIRED  variables + vault-encrypted secrets
 #        site.yml               optional  which roles run where (default: the
 #                                         framework's hosts/site.yml)
@@ -92,7 +94,8 @@ unset GIT_SSH_COMMAND
 
 CONF="$FLEET_CONFIG_DIR/$FLEET_CONFIG_SUBDIR"
 fail() { echo "ERROR: $1 (see consigliere-fleet-template/)" >&2; exit 1; }
-[ -f "$CONF/inventory/groups.yml" ] || fail "$CONF/inventory/groups.yml not found -- the tag-to-group mapping is required, otherwise no role beyond the baseline would ever match"
+[ -f "$CONF/inventory/hosts.yml" ] || fail "$CONF/inventory/hosts.yml not found -- the host table is required, otherwise no role beyond the baseline would ever match"
+[ -f "$CONF/inventory/groups.yml" ] || fail "$CONF/inventory/groups.yml not found -- it turns the host table's values into groups and is required"
 # Group vars are required (without them every role would run with no config).
 # Per-host vars are optional: git can't track an empty directory, and a fleet
 # with no per-host overrides is perfectly valid.
@@ -135,12 +138,25 @@ if [ -d "$VAULT_DIR" ]; then
   done
 fi
 
+# Inventory: this host (Tailscale name), the fleet's host table, then the rules
+# that turn table values into groups. The table lists every host but the run is
+# limited to this one.
+SELF="$(python3 "$FRAMEWORK_DIR/hosts/inventory/tailscale_self.py" --name)"
+INV_ARGS=(
+  -i "$FRAMEWORK_DIR/hosts/inventory/tailscale_self.py"
+  -i "$CONF/inventory/hosts.yml"
+  -i "$CONF/inventory/groups.yml"
+)
+SELF_VARS="$(ansible-inventory "${INV_ARGS[@]}" --host "$SELF" 2>/dev/null || true)"
+if ! grep -q '"run"' <<<"$SELF_VARS"; then
+  echo "WARNING: '$SELF' has no entry (with a run: list) in inventory/hosts.yml -- only the baseline will run. The key must equal this host's Tailscale hostname." >&2
+fi
+
 echo "==> Running playbook"
 cd "$RUN_DIR"
 # shellcheck disable=SC2086  # ANSIBLE_EXTRA_ARGS is intentionally word-split
 ansible-playbook \
-  -i "$FRAMEWORK_DIR/hosts/inventory/tailscale_self.py" \
-  -i "$CONF/inventory/groups.yml" \
+  "${INV_ARGS[@]}" --limit "$SELF" \
   ${VAULT_ARGS[@]+"${VAULT_ARGS[@]}"} \
   ${EXTRA_VARS[@]+"${EXTRA_VARS[@]}"} \
   ${ANSIBLE_EXTRA_ARGS:-} \

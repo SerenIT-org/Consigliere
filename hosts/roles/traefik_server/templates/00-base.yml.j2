@@ -1,0 +1,20 @@
+# Managed by Ansible (hosts/roles/traefik_server) -- edits get overwritten.
+http:
+  routers:
+    # Must answer on :80 before the redirect so health checks see a 200.
+    ping:
+      rule: "Path(`/ping`)"
+      entryPoints: [{{ traefik_server_entrypoint_web }}]
+      service: ping@internal
+      priority: 1000
+    http-to-https:
+      rule: "HostRegexp(`.+`)"
+      entryPoints: [{{ traefik_server_entrypoint_web }}]
+      middlewares: [https-redirect]
+      service: noop@internal
+      priority: 1
+  middlewares:
+    https-redirect:
+      redirectScheme:
+        scheme: https
+        permanent: true

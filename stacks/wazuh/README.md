@@ -4,7 +4,7 @@ Manager + indexer + dashboard, for the fleet-wide malware/rootkit
 detection and file-integrity monitoring described in
 [VISION.md](../../VISION.md) ("Security posture / malware detection —
 moving to Wazuh"). Agents are enrolled separately by
-`hosts/roles/agent_wazuh/` on every other host in the fleet.
+`hosts/roles/wazuh_agent/` on every other host in the fleet.
 
 ## What's here
 
@@ -22,8 +22,8 @@ it into the `stacks/<service>/docker-compose.yml` convention the rest of
 
 ## Deploying
 
-Run all of this **on the host tagged the `server_wazuh` group** — that tag is
-what makes `hosts/roles/server_wazuh` apply the `vm.max_map_count=262144`
+Run all of this **on the host tagged the `wazuh_server` group** — that tag is
+what makes `hosts/roles/wazuh_server` apply the `vm.max_map_count=262144`
 sysctl the indexer requires (OpenSearch needs more virtual memory areas
 than Linux's default 65530 allows). Tag the host in Tailscale first, run
 `ansible-pull` (or wait for its scheduled run) so that prerequisite lands,
@@ -82,7 +82,7 @@ service didn't need a new widget.
 ## Status
 
 Scaffolded, not deployed. `vm.max_map_count` prerequisite role
-(`hosts/roles/server_wazuh`) and the `server_wazuh` inventory group are in
+(`hosts/roles/wazuh_server`) and the `wazuh_server` inventory group are in
 place; the submodule is pinned; the agent side
-(`hosts/roles/agent_wazuh`) is rewritten to enroll against
-`server_wazuh_addr`. None of this has been run against a live host yet.
+(`hosts/roles/wazuh_agent`) is rewritten to enroll against
+`wazuh_server_addr`. None of this has been run against a live host yet.

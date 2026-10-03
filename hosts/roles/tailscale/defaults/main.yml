@@ -1,8 +1,8 @@
 ---
 # Auth key used only when this host is NOT already on the tailnet (the role
-# never re-runs `tailscale up` on a host that's connected). Prefer setting it
-# in your fleet-config vault (config/vars/group/all/vault.yml) so scheduled
-# runs have it; the environment variable is a bootstrap-time fallback.
+# never re-runs `tailscale up` on a host that's connected). Auth keys are
+# short-lived, so they are not stored: bootstrap.sh prompts for it (or reads
+# TAILSCALE_AUTHKEY) and it lives only in that one run's environment.
 tailscale_authkey: "{{ lookup('env', 'TAILSCALE_AUTHKEY') }}"
 
 tailscale_args: "--ssh"   # enables Tailscale SSH; drop if you'd rather manage keys yourself

@@ -1,0 +1,70 @@
+---
+# Applied to certwarden_agent hosts: pulls certificates from the central Cert
+# Warden and keeps them current. See defaults/main.yml for what goes where.
+
+- name: Validate configuration
+  ansible.builtin.import_tasks: validate.yml
+
+- name: Install curl and openssl
+  ansible.builtin.apt:
+    name:
+      - curl
+      - openssl
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Create the certificate directory
+  ansible.builtin.file:
+    path: "{{ certwarden_agent_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Write the fetch configuration (contains API keys)
+  ansible.builtin.template:
+    src: certwarden-fetch.conf.j2
+    dest: /etc/certwarden-fetch.conf
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+
+- name: Install the fetch script
+  ansible.builtin.template:
+    src: certwarden-fetch.sh.j2
+    dest: /usr/local/sbin/certwarden-fetch.sh
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Install the fetch service and timer
+  ansible.builtin.template:
+    src: "certwarden-fetch.{{ item }}.j2"
+    dest: "/etc/systemd/system/certwarden-fetch.{{ item }}"
+    mode: "0644"
+  loop:
+    - service
+    - timer
+  notify: Reload systemd for certwarden fetch
+  tags: [timer]
+
+- name: Enable the daily check
+  ansible.builtin.systemd:
+    name: certwarden-fetch.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+  tags: [timer]
+
+# Not fatal: on first bring-up Cert Warden may not have issued the certificate
+# yet. The timer retries daily; the output below says what happened.
+- name: Fetch certificates now
+  ansible.builtin.command: /usr/local/sbin/certwarden-fetch.sh
+  register: _certwarden_agent_fetch
+  changed_when: "'UPDATED' in _certwarden_agent_fetch.stdout"
+  failed_when: false
+
+- name: Report fetch problems
+  ansible.builtin.debug:
+    msg: "{{ _certwarden_agent_fetch.stderr_lines }}"
+  when: _certwarden_agent_fetch.rc != 0

@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# Managed by Ansible (hosts/roles/certwarden_agent) -- edits get overwritten.
+# Fetches certificate bundles from Cert Warden and installs them only if they
+# are valid and different from what is already in place.
+set -euo pipefail
+
+CONF="${CERTWARDEN_FETCH_CONF:-/etc/certwarden-fetch.conf}"
+# shellcheck disable=SC1090
+source "$CONF"      # SERVER_URL, DEST, CA_FILE, VERIFY_TLS, TOUCH_FILES, CERTS=("name apikey" ...)
+
+umask 077
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+rc=0
+changed=0
+
+curl_args=(--fail --silent --show-error --max-time 30)
+[ -n "${CA_FILE:-}" ] && curl_args+=(--cacert "$CA_FILE")
+[ "${VERIFY_TLS:-true}" = "false" ] && curl_args+=(--insecure)
+
+for entry in "${CERTS[@]}"; do
+  name="${entry%% *}"
+  apikey="${entry#* }"
+  t="$work/$name"; mkdir -p "$t"
+
+  # key + cert + chain in one PEM, so cert and key are always a matched pair.
+  # The key is sent via a curl config on stdin so it never shows in `ps`.
+  if ! printf 'header = "X-API-Key: %s"\n' "$apikey" |
+       curl "${curl_args[@]}" -K - -o "$t/bundle.pem" \
+         "$SERVER_URL/certwarden/api/v1/download/privatecertchains/$name"; then
+    echo "FAILED  $name: could not download" >&2; rc=1; continue
+  fi
+
+  awk -v key="$t/privkey.pem" -v chain="$t/fullchain.pem" '
+    /-----BEGIN [A-Z ]*PRIVATE KEY-----/ { out = key }
+    /-----BEGIN CERTIFICATE-----/        { out = chain }
+    out                                  { print > out }
+    /-----END /                          { out = "" }
+  ' "$t/bundle.pem"
+
+  if [ ! -s "$t/privkey.pem" ] || [ ! -s "$t/fullchain.pem" ]; then
+    echo "FAILED  $name: response lacked a key or certificate" >&2; rc=1; continue
+  fi
+  if ! openssl x509 -in "$t/fullchain.pem" -noout -checkend 0 >/dev/null 2>&1; then
+    echo "FAILED  $name: certificate unreadable or already expired" >&2; rc=1; continue
+  fi
+  cert_pub="$(openssl x509 -in "$t/fullchain.pem" -noout -pubkey | openssl sha256)"
+  key_pub="$(openssl pkey -in "$t/privkey.pem" -pubout | openssl sha256)"
+  if [ "$cert_pub" != "$key_pub" ]; then
+    echo "FAILED  $name: key does not match certificate" >&2; rc=1; continue
+  fi
+
+  dest="$DEST/$name"
+  mkdir -p "$dest"; chmod 0750 "$dest"
+  if cmp -s "$t/fullchain.pem" "$dest/fullchain.pem" && cmp -s "$t/privkey.pem" "$dest/privkey.pem"; then
+    echo "OK      $name: unchanged"; continue
+  fi
+  # key first, then cert; consumers are only told to reload after both are in place.
+  install -m 0600 "$t/privkey.pem"   "$dest/.privkey.pem.new"   && mv -f "$dest/.privkey.pem.new"   "$dest/privkey.pem"
+  install -m 0644 "$t/fullchain.pem" "$dest/.fullchain.pem.new" && mv -f "$dest/.fullchain.pem.new" "$dest/fullchain.pem"
+  echo "UPDATED $name"; changed=1
+done
+
+if [ "$changed" = 1 ]; then
+  for f in ${TOUCH_FILES:-}; do [ -e "$f" ] && touch "$f"; done
+fi
+exit "$rc"

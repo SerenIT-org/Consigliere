@@ -1,0 +1,43 @@
+---
+# Applied to the traefik_server group: hosts that run Traefik as a reverse
+# proxy. This role does NOT deploy Traefik (the stack lives in the geotraefik
+# repo); it prepares what that stack mounts on the host:
+#
+#   <dir>/dynamic/00-base.yml    ping + http->https redirect (framework-owned)
+#   <dir>/dynamic/10-routes.yml  THIS host's routes, collected from variables
+#   <dir>/dynamic/20-tls.yml     certificates found under <certs dir>
+#
+# so every proxy host shares one base but serves only its own routes, and holds
+# NO DNS API key: certificates arrive as files from Cert Warden
+# (see certwarden_agent), or from any issuer that writes the same files.
+#
+# ROUTES: define one or more variables whose names start with
+# traefik_server_routes (e.g. traefik_server_routes_vault in
+# config/vars/host/web-host.yml, or traefik_server_routes_arkeep in the
+# arkeep_server group file). This role gathers every such variable that the host
+# can see -- i.e. from the groups it belongs to plus its own host file -- so the
+# route follows the service. Each route:
+#   - name:        unique, [a-z0-9-]
+#     host:        hostname (or a list of hostnames)
+#     backend:     URL Traefik forwards to, e.g. http://vaultwarden:80
+#                  (same-host containers via the shared network by name; other
+#                  hosts via a Tailscale address)
+#     middlewares: optional list of middleware names
+#     rule:        optional full Traefik rule, replacing the host-based one
+
+traefik_server_dir: /opt/traefik
+
+# Where certificates live on the host (certwarden_agent_dir), and the names to
+# load from there. Defaults to every certificate certwarden_agent fetches.
+traefik_server_certs_dir: "{{ common_dir | default('/opt/common') }}/certs"
+traefik_server_certificates: >-
+  {{ query('ansible.builtin.varnames', '^certwarden_agent_certs(_.*)?$')
+     | map('extract', vars) | flatten | map(attribute='name') | list }}
+
+# Entry point names, matching the static traefik.yml in geotraefik.
+traefik_server_entrypoint_web: web
+traefik_server_entrypoint_websecure: websecure
+
+# The Docker network shared by the proxy and everything it fronts on this host
+# (e.g. "proxynet"). Created if set; empty = don't manage one.
+traefik_server_network: ""

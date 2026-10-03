@@ -1,0 +1,46 @@
+---
+# Applied to the arcane_agent group. Deploys the Arcane agent so the central
+# Arcane manager can also see/manage this host's Docker. See
+# defaults/main.yml for what's expected from your private fleet-config
+# repo -- in particular, arcane_agent_token has no automated provisioning
+# path (see that file).
+
+- name: Fail fast if the Arcane manager API URL isn't configured
+  ansible.builtin.fail:
+    msg: >-
+      arcane_server_api_url is not set -- it's the arcane_server group
+      host's address, e.g. http://100.x.x.x:3552, set in your fleet-config
+      repo's config/vars/group/ files.
+  when: >-
+    arcane_server_api_url is not defined or not arcane_server_api_url or
+    arcane_server_api_url is search('CHANGEME')
+
+- name: Fail fast if the Arcane agent token isn't configured
+  ansible.builtin.fail:
+    msg: >-
+      arcane_agent_token is not set -- mint one from the Arcane manager's
+      own UI after it's running, then set it in this host's config/vars/host/ file in
+      your fleet-config repo (see defaults/main.yml -- this isn't a shared
+      secret like Arkeep's, so it can't be provisioned ahead of time).
+  when: >-
+    arcane_agent_token is not defined or not arcane_agent_token or
+    arcane_agent_token is search('CHANGEME')
+
+- name: Create Arcane agent directory
+  ansible.builtin.file:
+    path: "{{ arcane_agent_dir }}"
+    state: directory
+    mode: "0750"
+
+- name: Write Arcane agent compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ arcane_agent_dir }}/docker-compose.yml"
+    mode: "0640"
+  register: _arcane_agent_compose
+
+- name: Start Arcane agent
+  community.docker.docker_compose_v2:
+    project_src: "{{ arcane_agent_dir }}"
+    state: present
+    pull: "{{ 'always' if _arcane_agent_compose.changed else 'missing' }}"

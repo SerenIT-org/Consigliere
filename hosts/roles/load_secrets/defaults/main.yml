@@ -1,0 +1,4 @@
+---
+load_secrets_scopes: []
+# Set by reconcile.sh to the fleet repo's config/secrets.
+load_secrets_dir: "{{ fleet_secrets_dir | default(playbook_dir ~ '/secrets') }}"

@@ -1,0 +1,44 @@
+---
+# Applied to the arcane_server group. Deploys Arcane's manager UI behind a
+# docker-socket-proxy (this node is internet-facing). See defaults/main.yml
+# for what's expected from your private fleet-config repo.
+
+- name: Load this role's secrets
+  ansible.builtin.include_role:
+    name: load_secrets
+  vars:
+    load_secrets_scopes: [arcane.server]
+
+- name: Fail fast if the Arcane encryption key isn't configured
+  ansible.builtin.fail:
+    msg: >-
+      arcane_server_encryption_key is not set -- it comes from your private
+      fleet-config repo's secret arcane.server (scripts/vault.sh create
+      arcane.server). Generate with: openssl rand -base64 32
+  when: >-
+    arcane_server_encryption_key is not defined or not arcane_server_encryption_key or
+    arcane_server_encryption_key is search('CHANGEME')
+
+- name: Create Arcane directory
+  ansible.builtin.file:
+    path: "{{ arcane_server_dir }}"
+    state: directory
+    mode: "0750"
+
+- name: Write Arcane compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ arcane_server_dir }}/docker-compose.yml"
+    mode: "0640"
+  register: _arcane_server_compose
+
+- name: Create the shared proxy network (so Traefik and this service can reach each other by name)
+  community.docker.docker_network:
+    name: "{{ arcane_server_network }}"
+  when: arcane_server_network | length > 0
+
+- name: Start Arcane
+  community.docker.docker_compose_v2:
+    project_src: "{{ arcane_server_dir }}"
+    state: present
+    pull: "{{ 'always' if _arcane_server_compose.changed else 'missing' }}"

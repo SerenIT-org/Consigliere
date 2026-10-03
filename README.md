@@ -28,25 +28,25 @@ it is not the primary execution path, `ansible-pull` is.
 
 Roles:
 - `baseline` — users, SSH hardening, unattended-upgrades
-- `tailscale` — install + join (tags-based, see inventory below)
+- `tailscale` — install + join (see inventory below)
 - `docker` — Docker CE install; `docker_mode: standalone|swarm` toggles swarm-specific tasks
-- `agent_wazuh` — opt-in via the `agent_wazuh` group (so nothing breaks before a manager exists); enrolls a Wazuh agent against `server_wazuh_addr`
+- `wazuh_agent` — opt-in via the `wazuh_agent` group (so nothing breaks before a manager exists); enrolls a Wazuh agent against `wazuh_server_addr`
   (see [stacks/wazuh/](stacks/wazuh/)); replaced an earlier Lynis+maldet
   approach, see VISION.md
-- `server_wazuh` — applied only to the `server_wazuh` group, sets the
+- `wazuh_server` — applied only to the `wazuh_server` group, sets the
   `vm.max_map_count` sysctl the Wazuh indexer requires
-- `server_arkeep` / `agent_arkeep` — centralized backups via
+- `arkeep_server` / `arkeep_agent` — centralized backups via
   [Arkeep](https://github.com/arkeep-io/arkeep): one host runs the server
-  (the `server_arkeep` group), every backed-up host runs the agent
-  (the `agent_arkeep` group), connecting outbound over gRPC
-- `server_certwarden` / `agent_certwarden` — a central ACME client
+  (the `arkeep_server` group), every backed-up host runs the agent
+  (the `arkeep_agent` group), connecting outbound over gRPC
+- `certwarden_server` / `certwarden_agent` — a central ACME client
   ([Cert Warden](https://github.com/gregtwallace/certwarden); non-commercial
   license) issues certificates once, and consumer hosts fetch them as files, so
   DNS API credentials live on one host
-- `server_traefik` — renders Traefik's dynamic config per host (a shared base,
-  that host's own routes gathered from `server_traefik_routes*` variables, and the
-  fetched certificates); see [its README](hosts/roles/server_traefik/README.md)
-- `server_arcane` / `agent_arcane` — deploys
+- `traefik_server` — renders Traefik's dynamic config per host (a shared base,
+  that host's own routes gathered from `traefik_server_routes*` variables, and the
+  fetched certificates); see [its README](hosts/roles/traefik_server/README.md)
+- `arcane_server` / `arcane_agent` — deploys
   [Arcane](https://github.com/getarcaneapp/arcane) itself (one manager,
   agents elsewhere) — Ansible's job is getting Arcane running at all;
   everything in `stacks/` below is then Arcane's job, not Ansible's
@@ -54,7 +54,7 @@ Roles:
 ### 2. Application/stack layer — `stacks/` (Arcane)
 
 Docker Compose / Swarm stack definitions, one directory per service, once
-Arcane itself is running (see `server_arcane`/`agent_arcane` above — a
+Arcane itself is running (see `arcane_server`/`arcane_agent` above — a
 bootstrapping step, since Arcane can't GitOps-deploy itself). Arcane then
 watches this tree directly and handles sync, drift detection, and
 redeploys — it owns this layer, Ansible does not touch running containers
@@ -101,8 +101,8 @@ create from [consigliere-fleet-template](https://github.com/almadon/consigliere-
 (GitHub forks of public repos can't be private, so use "Use this template" ->
 Private). That repo has two jobs:
 
-1. **Customization**: your Tailscale tag taxonomy (`config/inventory/groups.yml`),
-   optionally which roles run where (`config/site.yml`), your own roles/apps,
+1. **Customization**: your host table and grouping (`config/inventory/hosts.yml`,
+   `groups.yml`), optionally which roles run where (`config/site.yml`), your own roles/apps,
    and your runbooks.
 2. **Secrets and variables**: `config/vars/group/`, `config/vars/host/`, and the
    ansible-vault encrypted `vault.yml`.
@@ -110,12 +110,17 @@ Private). That repo has two jobs:
 ### Inventory and group names
 
 Each host reconciles itself, so the inventory is just that host:
-`hosts/inventory/tailscale_self.py` reports it with its Tailscale tags in the
-`tailscale_tags` variable (read from the local `tailscale status`, no API key).
-Your `groups.yml` maps *your* tag names onto the framework's stable group
-names, which is all `hosts/site.yml` refers to: `server_arkeep`,
-`agent_arkeep`, `server_arcane`, `agent_arcane`, `server_semaphore`,
-`server_wazuh`, `agent_wazuh` (pattern: `<server|agent>_<app>`). Any extra groups you define are yours (use
+`hosts/inventory/tailscale_self.py` reports it under its Tailscale hostname
+(from the local `tailscale status`, no API key). Your private repo's
+`config/inventory/hosts.yml` is the host table: one entry per host, keyed by that
+hostname, with values like `type`, `site`, `util` and a `run:` list. `groups.yml`
+turns those values into groups (`type_vps`, `site_home`, `util_rpc_proxy`, ...)
+and each host's `run:` list into the framework's stable group names, which is all
+`hosts/site.yml` refers to. The run is limited to the host itself, and OS groups
+(`os_linux_debian`, ...) are added automatically. Tailscale tags are not used for
+grouping or as a source of truth. The framework's groups are: `arkeep_server`,
+`arkeep_agent`, `arcane_server`, `arcane_agent`, `semaphore_server`,
+`wazuh_server`, `wazuh_agent` (pattern: `<app>_<server|agent>`). Any extra groups you define are yours (use
 them to attach variables). A host matching no group still gets the baseline.
 
 ## Bootstrapping a brand-new host

@@ -69,8 +69,8 @@ Stands servers up, doesn't just configure ones that exist. Blocked on
 settling the substrate (hypervisor/cloud/bare-metal — currently a mix).
 
 ### Backups — Arkeep (decided 2026-10-01, over Zerobyte)
-`hosts/roles/server_arkeep` (one host, the `server_arkeep` group) and
-`hosts/roles/agent_arkeep` (every backed-up host, the `agent_arkeep` group)
+`hosts/roles/arkeep_server` (one host, the `arkeep_server` group) and
+`hosts/roles/arkeep_agent` (every backed-up host, the `arkeep_agent` group)
 deploy [Arkeep](https://github.com/arkeep-io/arkeep) — restic+rclone under
 the hood, central server + gRPC/mTLS agents, agents auto-enroll via the
 server's HTTP API (no manual cert/token exchange for *this* part — see
@@ -79,15 +79,15 @@ below for what *does* need a manual step). Superseded an earlier generic
 Arkeep's own agent took over scheduling/retention. All real values (server
 address, secrets) come from the private fleet-config repo.
 
-**One thing that can't be automated**: the shared `agent_arkeep_secret` and
-`server_arkeep_secret_key` go in vault like any other secret, but there's no
+**One thing that can't be automated**: the shared `arkeep_agent_secret` and
+`arkeep_server_secret_key` go in vault like any other secret, but there's no
 verified API for *minting* things — enrollment itself is automatic
 (auto-PKI), so this is simpler than it sounds; see
-`hosts/roles/server_arkeep/README.md` for the one manual step there is
+`hosts/roles/arkeep_server/README.md` for the one manual step there is
 (reverse-proxy wiring, if applicable).
 
 ### GitOps engine — Arcane (self-hosted via Ansible)
-`hosts/roles/server_arcane` (one host) and `hosts/roles/agent_arcane`
+`hosts/roles/arcane_server` (one host) and `hosts/roles/arcane_agent`
 (other Docker hosts) deploy [Arcane](https://github.com/getarcaneapp/arcane)
 itself — previously assumed to just exist; this was a real gap until
 2026-10-01 (Arcane obviously can't GitOps-deploy itself). The manager
@@ -95,7 +95,7 @@ variant uses Arcane's docker-socket-proxy-hardened compose shape since
 that node is also internet-facing (reverse proxy). Agents run in **edge
 mode** (as the manager's agent wizard generates): they poll the manager's
 HTTPS URL outbound, so agent hosts publish no ports and need no firewall
-changes. **One thing that can't be automated**: `agent_arcane_token` is
+changes. **One thing that can't be automated**: `arcane_agent_token` is
 generated per agent by that wizard — a one-time manual step per agent host
 (goes in that host's `config/vars/host/` file, not the shared
 `config/vars/group/` files; a leaked token can be invalidated and
@@ -135,13 +135,13 @@ changed*. This module is reporting, not another updater:
   trying to parse changelog prose for risk.
 
 ### Security posture / malware detection — Wazuh
-The `agent_wazuh` role now enrolls a **Wazuh agent** rather than
+The `wazuh_agent` role now enrolls a **Wazuh agent** rather than
 running Lynis + maldet — fleet-wide file-integrity monitoring,
 rootkit/malware detection, and log analysis with a real single-pane
 dashboard, instead of Consigliere hand-rolling posture reporting on top of two
 separate CLI tools. Same "adopt, don't reinvent" call as Arcane for
 containers. The manager/indexer/dashboard stack lives in `stacks/wazuh/`
-(vendored as a git submodule, see its README); `server_wazuh` (a new,
+(vendored as a git submodule, see its README); `wazuh_server` (a new,
 manager-only role) handles the one host-level prerequisite (OpenSearch's
 `vm.max_map_count` sysctl). Scaffolded, not yet run against a live host.
 
@@ -203,9 +203,9 @@ manager.
    once already (see git history around 2026-10-01) and got reverted after
    confirming geotraefik is where it belongs.
 3. **A web UI surfacing all of this** — this is `console/`, already built.
-   User referenced an "Alsos guest portal web app (fork)" as a framework
-   worth drawing from for this — not yet located/reviewed; get the repo
-   path before assuming anything about its stack or design.
+   A guest-portal web app (a fork the maintainer has) was mentioned as a
+   framework worth drawing from for this — not yet located/reviewed; get the
+   repo path before assuming anything about its stack or design.
 4. **Wazuh rollout** — already scaffolded, see Security posture above.
 5. **Full host + KVM control via flashctrl-sdk** — eventual, per a
    "flashDK/flashCtrl handoff" the user mentioned. No handoff details seen
@@ -230,9 +230,9 @@ manager.
   anything but localhost — see its README's procedure.
 - Update intelligence module (apt-listchanges, Diun/Renovate, breaking-
   change flagging) is named but not yet built.
-- "Alsos guest portal web app (fork)" — referenced as design inspiration
-  for `console/`, location not yet provided.
-- None of `server_arkeep`/`agent_arkeep`/`server_arcane`/`agent_arcane`
+- A guest-portal web app (a fork the maintainer has) — referenced as design
+  inspiration for `console/`, location not yet provided.
+- None of `arkeep_server`/`arkeep_agent`/`arcane_server`/`arcane_agent`
   have been run against a real host yet — scaffolded and template-rendering
   verified (valid YAML in both the standalone and behind-proxy branches),
   not deployment-verified.

@@ -1,0 +1,54 @@
+---
+- name: Collect this host's routes from every layer that defines them
+  ansible.builtin.set_fact:
+    _traefik_server_routes: >-
+      {{ query('ansible.builtin.varnames', '^traefik_server_routes(_.*)?$')
+         | map('extract', vars) | flatten }}
+
+- name: Summarise the routes for validation
+  ansible.builtin.set_fact:
+    _traefik_server_names: "{{ _traefik_server_routes | map(attribute='name', default='') | list }}"
+    _traefik_server_without_backend: >-
+      {{ _traefik_server_routes | rejectattr('backend', 'defined') | list | length }}
+    _traefik_server_without_match: >-
+      {{ _traefik_server_routes | rejectattr('host', 'defined') | rejectattr('rule', 'defined') | list | length }}
+
+- name: Validate the routes
+  ansible.builtin.assert:
+    that:
+      - >-
+        _traefik_server_names | select('match', '^[a-z0-9][a-z0-9-]*$') | list | length
+        == _traefik_server_names | length
+      - _traefik_server_names | unique | list | length == _traefik_server_names | length
+      - _traefik_server_without_backend | int == 0
+      - _traefik_server_without_match | int == 0
+    fail_msg: >-
+      Every traefik_server_routes* entry needs a unique lowercase name (a-z, 0-9, dash),
+      a backend URL, and a host (or a full rule). Check the routes defined for this host.
+    quiet: true
+
+- name: Create the Traefik directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0750"
+  loop:
+    - "{{ traefik_server_dir }}"
+    - "{{ traefik_server_dir }}/dynamic"
+
+- name: Render Traefik's dynamic configuration
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ traefik_server_dir }}/dynamic/{{ item.dest }}"
+    mode: "0644"
+  loop:
+    - { src: 00-base.yml.j2, dest: 00-base.yml }
+    - { src: 10-routes.yml.j2, dest: 10-routes.yml }
+    - { src: 20-tls.yml.j2, dest: 20-tls.yml }
+  loop_control:
+    label: "{{ item.dest }}"
+
+- name: Create the shared proxy network
+  community.docker.docker_network:
+    name: "{{ traefik_server_network }}"
+  when: traefik_server_network | length > 0

@@ -1,0 +1,42 @@
+---
+- name: Load this role's secrets
+  ansible.builtin.include_role:
+    name: load_secrets
+  vars:
+    load_secrets_scopes: [semaphore.server]
+
+- name: Fail fast if Semaphore secrets aren't configured
+  ansible.builtin.fail:
+    msg: >-
+      semaphore_server_admin_password / semaphore_server_access_key_encryption are not
+      set -- put them in your fleet-config secret semaphore.server
+      (scripts/vault.sh create semaphore.server).
+  when: >-
+    semaphore_server_admin_password is not defined or not semaphore_server_admin_password or
+    semaphore_server_admin_password is search('CHANGEME') or
+    semaphore_server_access_key_encryption is not defined or not semaphore_server_access_key_encryption or
+    semaphore_server_access_key_encryption is search('CHANGEME')
+
+- name: Create Semaphore directory
+  ansible.builtin.file:
+    path: "{{ semaphore_server_dir }}"
+    state: directory
+    mode: "0750"
+
+- name: Write Semaphore compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ semaphore_server_dir }}/docker-compose.yml"
+    mode: "0640"
+  register: _semaphore_server_compose
+
+- name: Create the shared proxy network (so Traefik and this service can reach each other by name)
+  community.docker.docker_network:
+    name: "{{ semaphore_server_network }}"
+  when: semaphore_server_network | length > 0
+
+- name: Start Semaphore
+  community.docker.docker_compose_v2:
+    project_src: "{{ semaphore_server_dir }}"
+    state: present
+    pull: "{{ 'always' if _semaphore_server_compose.changed else 'missing' }}"

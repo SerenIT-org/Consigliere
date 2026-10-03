@@ -18,7 +18,7 @@
 #
 # Vault passwords can't be generated, so supply them: VAULT_PASSWORDS_DIR is a
 # directory with one file per vault id, named for the id (`base`, plus one per
-# scoped group this host belongs to, e.g. `agent_certwarden`). Give a host ONLY the
+# scoped group this host belongs to, e.g. `certwarden_agent`). Give a host ONLY the
 # passwords for the scopes it should be able to read. They are installed to
 # /etc/fleet-reconcile/vault.d/ (0600); delete the source copies afterwards.
 set -euo pipefail
@@ -38,6 +38,14 @@ CRED_DIR="/etc/fleet-reconcile"
 # them from there on every run.
 FLEET_CONFIG_DEPLOY_KEY_FILE="${FLEET_CONFIG_DEPLOY_KEY_FILE:-}"
 VAULT_PASSWORDS_DIR="${VAULT_PASSWORDS_DIR:-}"
+
+# Tailscale auth key: only needed if this host is not on the tailnet yet. Never
+# stored; it lives in this process's environment for the first run only.
+if [ -z "${TAILSCALE_AUTHKEY:-}" ] && [ -t 0 ] && ! (command -v tailscale >/dev/null && tailscale status >/dev/null 2>&1); then
+  read -rsp "Tailscale auth key (Enter to skip if this host is already on the tailnet): " TAILSCALE_AUTHKEY
+  echo
+fi
+export TAILSCALE_AUTHKEY="${TAILSCALE_AUTHKEY:-}"
 
 echo "==> Installing git + ansible"
 apt-get update

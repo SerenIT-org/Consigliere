@@ -6,67 +6,78 @@
 - name: Fleet baseline + maintenance
   hosts: all
   become: true
+  pre_tasks:
+    # Automatic OS groups (os_linux, os_linux_debian, os_darwin, os_darwin_macosx, ...)
+    # so vars/group/os_<...>.yml and plays can target by OS with no table entry.
+    - name: Group by operating system
+      ansible.builtin.group_by:
+        key: "{{ item }}"
+      loop:
+        - "os_{{ ansible_system | lower }}"
+        - "os_{{ ansible_system | lower }}_{{ ansible_distribution | lower | replace(' ', '_') }}"
+      changed_when: false
+      tags: [always]
   roles:
     - baseline
     - tailscale
     - docker
 
-- name: Wazuh agents (opt-in via the agent_wazuh group, once a manager exists)
-  hosts: agent_wazuh
+- name: Wazuh agents (opt-in via the wazuh_agent group, once a manager exists)
+  hosts: wazuh_agent
   become: true
   roles:
-    - agent_wazuh
+    - wazuh_agent
 
 - name: Wazuh manager host prerequisites
-  hosts: server_wazuh
+  hosts: wazuh_server
   become: true
   roles:
-    - server_wazuh
+    - wazuh_server
 
 - name: Arkeep server
-  hosts: server_arkeep
+  hosts: arkeep_server
   become: true
   roles:
-    - server_arkeep
+    - arkeep_server
 
 - name: Arkeep agents
-  hosts: agent_arkeep
+  hosts: arkeep_agent
   become: true
   roles:
-    - agent_arkeep
+    - arkeep_agent
 
 - name: Arcane manager
-  hosts: server_arcane
+  hosts: arcane_server
   become: true
   roles:
-    - server_arcane
+    - arcane_server
 
 - name: Arcane agents
-  hosts: agent_arcane
+  hosts: arcane_agent
   become: true
   roles:
-    - agent_arcane
+    - arcane_agent
 
 - name: Semaphore (coordination server)
-  hosts: server_semaphore
+  hosts: semaphore_server
   become: true
   roles:
-    - server_semaphore
+    - semaphore_server
 
 - name: Cert Warden (central ACME client)
-  hosts: server_certwarden
+  hosts: certwarden_server
   become: true
   roles:
-    - server_certwarden
+    - certwarden_server
 
 - name: Certificate consumers (fetch from Cert Warden)
-  hosts: agent_certwarden
+  hosts: certwarden_agent
   become: true
   roles:
-    - agent_certwarden
+    - certwarden_agent
 
 - name: Traefik edge configuration
-  hosts: server_traefik
+  hosts: traefik_server
   become: true
   roles:
-    - server_traefik
+    - traefik_server

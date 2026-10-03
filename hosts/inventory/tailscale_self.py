@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Ansible dynamic inventory: this host only, described by its own Tailscale
-identity. No API key, no network call, no taxonomy.
+"""Ansible dynamic inventory: this host only, named by its own Tailscale
+hostname. No API key, no network call, no taxonomy.
 
 Each host reconciles itself (hosts/bootstrap/reconcile.sh), so the inventory
-is just "me" -- with my Tailscale tags exposed as the `tailscale_tags` host
-variable. Mapping those tags to the framework's group names is the admin's
-job and lives in their private fleet-config repo (config/inventory/groups.yml,
-an ansible.builtin.constructed inventory), so tag names stay private and
-custom. See consigliere-fleet-template/config/inventory/groups.yml.
+is just "me", with a few facts (addresses, and the Tailscale tags as the
+informational `tailscale_node_tags`; nothing in the framework relies on tags).
+Which groups a host belongs to is declared in the fleet-config repo's host
+table (config/inventory/hosts.yml), keyed by this same hostname. If Tailscale
+isn't installed or running yet (a brand-new host), the OS hostname is used.
 
 Test hook: TAILSCALE_STATUS_JSON=<file> reads that file instead of running
 `tailscale status --json`.
@@ -30,24 +30,34 @@ def status():
     return json.loads(out)
 
 
+def me():
+    try:
+        return status()["Self"]
+    except Exception:  # tailscale missing / not logged in yet
+        import socket
+        return {"HostName": socket.gethostname().split(".")[0]}
+
+
 def build():
-    me = status()["Self"]
-    name = (me.get("HostName") or "").strip() or "localhost"
-    ips = me.get("TailscaleIPs") or []
+    me_ = me()
+    name = (me_.get("HostName") or "").strip() or "localhost"
+    ips = me_.get("TailscaleIPs") or []
     return {
         "_meta": {"hostvars": {name: {
             "ansible_connection": "local",
-            "tailscale_tags": me.get("Tags") or [],
+            "tailscale_node_tags": me_.get("Tags") or [],
             "tailscale_ips": ips,
             "tailscale_ipv4": next((i for i in ips if ":" not in i), ""),
-            "tailscale_dns_name": (me.get("DNSName") or "").rstrip("."),
+            "tailscale_dns_name": (me_.get("DNSName") or "").rstrip("."),
         }}},
         "all": {"hosts": [name]},
     }
 
 
 if __name__ == "__main__":
-    if "--host" in sys.argv:
+    if "--name" in sys.argv:       # used by reconcile.sh to --limit the run to this host
+        print(next(iter(build()["all"]["hosts"])))
+    elif "--host" in sys.argv:
         print("{}")
     else:
         json.dump(build(), sys.stdout)

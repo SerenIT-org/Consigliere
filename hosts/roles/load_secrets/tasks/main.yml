@@ -1,0 +1,13 @@
+---
+# Loads named secret files from the fleet repo. Scope "<kind>.<name>" is the file
+# <fleet_secrets_dir>/<kind>/<name>.yml, encrypted with vault id "<kind>.<name>".
+# Use from a role:
+#   - ansible.builtin.include_role: {name: load_secrets}
+#     vars: {load_secrets_scopes: [arkeep.agent, arkeep.server]}
+# A host that lacks a scope's vault password (was not granted it) stops with a
+# clear message instead of running half-configured.
+- name: Load each requested secret
+  ansible.builtin.include_tasks: load_one.yml
+  loop: "{{ load_secrets_scopes }}"
+  loop_control:
+    loop_var: _ls_scope
