@@ -63,8 +63,9 @@
   register: _certwarden_agent_fetch
   changed_when: "'UPDATED' in _certwarden_agent_fetch.stdout"
   failed_when: false
+  when: not ansible_check_mode
 
 - name: Report fetch problems
   ansible.builtin.debug:
     msg: "{{ _certwarden_agent_fetch.stderr_lines }}"
-  when: _certwarden_agent_fetch.rc != 0
+  when: not ansible_check_mode and _certwarden_agent_fetch.rc != 0

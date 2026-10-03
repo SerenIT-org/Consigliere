@@ -30,12 +30,14 @@
   register: _tailscale_status
   changed_when: false
   failed_when: false
+  check_mode: false   # read-only, and the answer decides what the rest of the role does
 
 - name: Work out whether this host still needs to join
   ansible.builtin.set_fact:
     _tailscale_needs_join: >-
-      {{ _tailscale_status.rc != 0 or
-         (_tailscale_status.stdout | from_json).BackendState | default('') != 'Running' }}
+      {{ _tailscale_status.rc | default(1) != 0 or
+         (_tailscale_status.stdout | default('', true) | trim | length == 0) or
+         ((_tailscale_status.stdout | from_json).BackendState | default('')) != 'Running' }}
 
 - name: Fail fast if joining is needed but no auth key is available
   ansible.builtin.fail:
