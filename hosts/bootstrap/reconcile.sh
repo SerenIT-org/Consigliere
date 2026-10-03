@@ -70,6 +70,8 @@ mkdir -p "$WORKDIR"
 sync_repo() {
   local url="$1" branch="$2" dir="$3"
   if [ -d "$dir/.git" ]; then
+    # Follow the configured URL (fixes a repo that was cloned from a wrong or old one).
+    git -C "$dir" remote set-url origin "$url"
     git -C "$dir" fetch origin
     if [ -n "$branch" ]; then
       git -C "$dir" checkout "$branch"

@@ -84,10 +84,20 @@ chmod 600 /etc/fleet-reconcile.env
 
 echo "==> Cloning framework repo (to get reconcile.sh)"
 mkdir -p "$WORKDIR"
-git clone ${FRAMEWORK_REPO_BRANCH:+--branch "$FRAMEWORK_REPO_BRANCH"} "$FRAMEWORK_REPO_URL" "$WORKDIR/framework" || {
-  echo "ERROR: could not clone $FRAMEWORK_REPO_URL. The framework repo is public and needs no login, so this URL is wrong or unreachable (it lives at https://github.com/almadon/consigliere.git)." >&2
+framework_fail() {
+  echo "ERROR: could not get $FRAMEWORK_REPO_URL. The framework repo is public and needs no login, so this URL is wrong or unreachable (it lives at https://github.com/almadon/consigliere.git). Fix it and re-run bootstrap.sh; nothing else needs cleaning up." >&2
   exit 1
 }
+if [ -d "$WORKDIR/framework/.git" ]; then
+  # Re-run (e.g. after a wrong URL): point the existing checkout at the URL you gave now.
+  git -C "$WORKDIR/framework" remote set-url origin "$FRAMEWORK_REPO_URL"
+  git -C "$WORKDIR/framework" fetch origin || framework_fail
+  git -C "$WORKDIR/framework" remote set-head origin --auto >/dev/null 2>&1 || true
+  git -C "$WORKDIR/framework" reset --hard "origin/${FRAMEWORK_REPO_BRANCH:-HEAD}"
+else
+  rm -rf "$WORKDIR/framework"
+  git clone ${FRAMEWORK_REPO_BRANCH:+--branch "$FRAMEWORK_REPO_BRANCH"} "$FRAMEWORK_REPO_URL" "$WORKDIR/framework" || framework_fail
+fi
 
 echo "==> Installing sops (pinned, checksum-verified)"
 "$WORKDIR/framework/hosts/bootstrap/install-sops.sh"
