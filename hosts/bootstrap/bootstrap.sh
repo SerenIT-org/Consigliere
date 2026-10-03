@@ -21,10 +21,13 @@
 # secrets from your admin machine (scripts/access.sh). No passwords are copied.
 set -euo pipefail
 
-# Ask for anything missing when run by hand on a terminal.
+# On a terminal, always show what will be used and let you change it (a value left
+# exported in your shell would otherwise be used silently).
 if [ -t 0 ]; then
-  [ -n "${FRAMEWORK_REPO_URL:-}" ] || read -r -p "Framework repo URL (e.g. https://github.com/almadon/consigliere.git): " FRAMEWORK_REPO_URL
-  [ -n "${FLEET_CONFIG_REPO_URL:-}" ] || read -r -p "Your PRIVATE fleet repo URL (SSH form, git@github.com:you/fleet.git): " FLEET_CONFIG_REPO_URL
+  d="${FRAMEWORK_REPO_URL:-https://github.com/almadon/consigliere.git}"
+  read -r -p "Framework repo URL [$d]: " in; FRAMEWORK_REPO_URL="${in:-$d}"
+  d="${FLEET_CONFIG_REPO_URL:-}"
+  read -r -p "Your PRIVATE fleet repo URL (git@github.com:you/fleet.git)${d:+ [$d]}: " in; FLEET_CONFIG_REPO_URL="${in:-$d}"
 fi
 # Never let git ask for a username/password: the framework repo is public (no login),
 # and the private fleet repo is read with a deploy key over SSH.
