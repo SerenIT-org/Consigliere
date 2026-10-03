@@ -4,8 +4,11 @@
 # deploy/docker/docker-compose.agent.yml (verified 2026-10-01).
 services:
   agent:
-    image: ghcr.io/arkeep-io/arkeep-agent:latest
+    image: ghcr.io/arkeep-io/arkeep-agent:{{ arkeep_agent_version }}
     container_name: arkeep-agent
+    # The agent registers under this name (it is what the Arkeep UI shows), instead of
+    # the container's random hostname.
+    hostname: "{{ inventory_hostname }}"
     restart: unless-stopped
     environment:
       ARKEEP_SERVER_ADDR: "{{ arkeep_server_addr }}"

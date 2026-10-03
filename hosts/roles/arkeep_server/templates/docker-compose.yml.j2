@@ -4,7 +4,7 @@
 # deploy/docker/docker-compose.yml (verified 2026-10-01).
 services:
   server:
-    image: ghcr.io/arkeep-io/arkeep-server:latest
+    image: ghcr.io/arkeep-io/arkeep-server:{{ arkeep_server_version }}
     container_name: arkeep-server
     restart: unless-stopped
     ports:
