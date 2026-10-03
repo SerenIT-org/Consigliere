@@ -1,0 +1,5 @@
+---
+description: "Scheduled docker compose pull + up -d for the host's Compose projects, with an Apprise notification"
+order: 80
+roles: [compose_updates]
+requires: [feat/apprise]

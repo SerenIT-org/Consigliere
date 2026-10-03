@@ -1,0 +1,5 @@
+---
+description: "Apprise notifications: the fleet-notify helper other roles use (needs the apprise.notify secret)"
+order: 20
+roles: [apprise]
+secrets: [apprise.notify]

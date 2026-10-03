@@ -1,0 +1,11 @@
+# Managed by Ansible (hosts/roles/compose_updates)
+[Unit]
+Description=Scheduled docker compose update
+
+[Timer]
+OnCalendar={{ compose_updates_schedule }}
+RandomizedDelaySec={{ compose_updates_randomized_delay }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

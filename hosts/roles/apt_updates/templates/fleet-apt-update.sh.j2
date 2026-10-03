@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Managed by Ansible (hosts/roles/apt_updates). apt update + upgrade, then notify.
+set -uo pipefail
+notify() { command -v fleet-notify >/dev/null 2>&1 && fleet-notify "$1" "$2" || true; }
+
+exec 9>/run/fleet-apt-update.lock
+flock -n 9 || { echo "another run is in progress"; exit 0; }
+export DEBIAN_FRONTEND=noninteractive
+log="$(mktemp)"; trap 'rm -f "$log"' EXIT
+
+if ! apt-get update >"$log" 2>&1; then
+  notify "apt update FAILED" "$(tail -n 15 "$log")"; exit 1
+fi
+n="$(apt-get -s upgrade 2>/dev/null | grep -c '^Inst ')"
+if [ "$n" -eq 0 ]; then
+{% if apt_updates_notify_when_idle %}
+  notify "apt: nothing to upgrade" "Up to date."
+{% endif %}
+  echo "nothing to upgrade"; exit 0
+fi
+if ! apt-get -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold upgrade >>"$log" 2>&1; then
+  notify "apt upgrade FAILED ($n pending)" "$(tail -n 20 "$log")"; exit 1
+fi
+msg="$n package(s) upgraded."
+if [ -f /var/run/reboot-required ]; then
+  msg="$msg REBOOT REQUIRED ($(tr '\n' ' ' </var/run/reboot-required.pkgs 2>/dev/null))."
+{% if apt_updates_autoreboot %}
+  notify "apt upgrade ok, rebooting in 1 minute" "$msg"
+  systemd-run --on-active=1min systemctl reboot
+  exit 0
+{% endif %}
+fi
+notify "apt upgrade ok" "$msg"

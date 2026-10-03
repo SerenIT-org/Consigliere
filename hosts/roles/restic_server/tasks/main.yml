@@ -1,0 +1,58 @@
+---
+- name: Load the users (secret restic.server)
+  ansible.builtin.include_role:
+    name: load_secrets
+  vars:
+    load_secrets_scopes: [restic.server]
+  when: not restic_server_no_auth
+
+- name: Require users unless authentication is off
+  ansible.builtin.assert:
+    that:
+      - restic_server_htpasswd is defined
+      - restic_server_htpasswd | length > 0
+      - "'CHANGEME' not in restic_server_htpasswd"
+    fail_msg: >-
+      restic_server_htpasswd is empty or still a placeholder. Edit the secret:
+      scripts/secrets.sh edit restic.server (htpasswd -nbB <user> '<password>' makes a line).
+    quiet: true
+  when: not restic_server_no_auth
+  no_log: true
+
+- name: Create the service and data directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    mode: "{{ item.mode }}"
+  loop:
+    - {path: "{{ restic_server_dir }}", mode: "0750"}
+    - {path: "{{ restic_server_data_dir }}", mode: "0750"}
+
+- name: Write the htpasswd file (bcrypt hashes)
+  ansible.builtin.copy:
+    content: "{{ restic_server_htpasswd }}"
+    dest: "{{ restic_server_dir }}/htpasswd"
+    owner: root
+    group: root
+    mode: "0644"   # the directory is 0750, so only root reaches it on the host
+  when: not restic_server_no_auth
+  no_log: true
+  notify: Recreate restic server
+
+- name: Write the compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ restic_server_dir }}/docker-compose.yml"
+    mode: "0640"
+  register: _restic_server_compose
+
+- name: Create the shared proxy network
+  community.docker.docker_network:
+    name: "{{ restic_server_network }}"
+  when: restic_server_network | length > 0
+
+- name: Start the restic REST server
+  community.docker.docker_compose_v2:
+    project_src: "{{ restic_server_dir }}"
+    state: present
+    pull: "{{ 'always' if _restic_server_compose.changed else 'missing' }}"

@@ -1,0 +1,21 @@
+---
+# A restic REST server (https://github.com/restic/rest-server): a backup target that
+# restic clients (restic -r rest:http://user:pass@host:8000/user/) talk to over HTTP.
+# Users come from the secret restic.server (config/secrets/restic/server.yml):
+#   restic_server_htpasswd: |
+#     alice:$2y$05$...        # make with:  htpasswd -nbB alice 'password'
+# Bound to this host's Tailscale IP by default (Docker-published ports bypass ufw).
+restic_server_dir: /opt/restic-server
+restic_server_version: "0.14.0"
+restic_server_data_dir: /srv/restic
+restic_server_bind_address: "{{ tailscale_ipv4 | default('127.0.0.1', true) }}"
+restic_server_port: 8000
+# Each user may only reach the repository under their own name (/alice/...).
+restic_server_private_repos: true
+# Clients can add data but not delete or overwrite it, so a compromised client can't
+# destroy its backups. Prune from the server side (see README) when you need to.
+restic_server_append_only: true
+# No authentication at all (only sensible on a locked-down tailnet); skips the secret.
+restic_server_no_auth: false
+# Join a shared Docker network (e.g. proxynet) to be fronted by Traefik; empty = none.
+restic_server_network: ""

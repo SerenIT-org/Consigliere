@@ -1,0 +1,6 @@
+---
+- name: Recreate restic server
+  community.docker.docker_compose_v2:
+    project_src: "{{ restic_server_dir }}"
+    state: present
+    recreate: always

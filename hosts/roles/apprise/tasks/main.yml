@@ -1,0 +1,53 @@
+---
+- name: Load the notification URLs (secret apprise.notify)
+  ansible.builtin.include_role:
+    name: load_secrets
+  vars:
+    load_secrets_scopes: [apprise.notify]
+
+- name: Require at least one notification URL
+  ansible.builtin.assert:
+    that:
+      - apprise_notify_urls | length > 0
+      - apprise_notify_urls | select('search', 'CHANGEME') | list | length == 0
+    fail_msg: >-
+      apprise_notify_urls is empty or still a placeholder. Edit the secret:
+      scripts/secrets.sh edit apprise.notify
+    quiet: true
+  no_log: true
+
+- name: Install the Python venv tooling
+  ansible.builtin.apt:
+    name: [python3-venv, python3-pip]
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install Apprise (pinned) into its own virtualenv
+  ansible.builtin.pip:
+    name: "apprise=={{ apprise_version }}"
+    virtualenv: "{{ apprise_venv }}"
+    virtualenv_command: python3 -m venv
+
+- name: Create the Apprise config directory
+  ansible.builtin.file:
+    path: "{{ apprise_config_dir }}"
+    state: directory
+    mode: "0750"
+
+- name: Write the Apprise config (contains tokens)
+  ansible.builtin.copy:
+    content: "{{ {'version': 1, 'urls': apprise_notify_urls} | to_nice_yaml }}"
+    dest: "{{ apprise_config_dir }}/apprise.yml"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+
+- name: Install the fleet-notify helper
+  ansible.builtin.template:
+    src: fleet-notify.j2
+    dest: /usr/local/bin/fleet-notify
+    owner: root
+    group: root
+    mode: "0755"

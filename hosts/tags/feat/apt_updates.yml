@@ -1,0 +1,5 @@
+---
+description: "Scheduled apt update + upgrade, with an Apprise notification"
+order: 70
+roles: [apt_updates]
+requires: [feat/apprise]

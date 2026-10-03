@@ -1,0 +1,5 @@
+---
+description: "Restic REST server, a backup target for restic clients"
+order: 40
+roles: [restic_server]
+secrets: [restic.server]

@@ -1,0 +1,10 @@
+---
+# Scheduled "apt update; apt upgrade -y" with an Apprise notification (needs the
+# apprise role: the feat/apt_updates manifest requires it).
+# systemd OnCalendar expression, plus a random delay so a fleet doesn't update at once.
+apt_updates_schedule: "Sun *-*-* 04:00:00"
+apt_updates_randomized_delay: 30min
+# Reboot automatically (after a minute) when the upgrade leaves /var/run/reboot-required.
+apt_updates_autoreboot: false
+# Also send a note when there was nothing to upgrade.
+apt_updates_notify_when_idle: false

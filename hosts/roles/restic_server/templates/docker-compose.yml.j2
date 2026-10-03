@@ -1,0 +1,30 @@
+# Managed by Ansible (hosts/roles/restic_server) -- edits here get overwritten on
+# the next reconciliation run. Change the role's defaults / fleet vars instead.
+services:
+  rest-server:
+    image: restic/rest-server:{{ restic_server_version }}
+    container_name: restic-server
+    restart: unless-stopped
+    ports:
+      - "{{ restic_server_bind_address ~ ':' if restic_server_bind_address else '' }}{{ restic_server_port }}:8000"
+    environment:
+      DATA_DIRECTORY: /data
+{% if restic_server_no_auth %}
+      DISABLE_AUTHENTICATION: "1"
+{% else %}
+      PASSWORD_FILE: /etc/rest-server/htpasswd
+{% endif %}
+      OPTIONS: "{{ ('--private-repos ' if restic_server_private_repos else '') ~ ('--append-only' if restic_server_append_only else '') }}"
+    volumes:
+      - {{ restic_server_data_dir }}:/data
+{% if not restic_server_no_auth %}
+      - {{ restic_server_dir }}/htpasswd:/etc/rest-server/htpasswd:ro
+{% endif %}
+{% if restic_server_network %}
+    networks:
+      - {{ restic_server_network }}
+
+networks:
+  {{ restic_server_network }}:
+    external: true
+{% endif %}

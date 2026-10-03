@@ -1,0 +1,15 @@
+---
+# Notifications for the other roles (apt_updates, compose_updates, ...) through
+# Apprise (https://github.com/caronc/apprise): one command, ~100 services (ntfy,
+# Telegram, Matrix, email, ...). The service URLs contain tokens, so they come from
+# the secret apprise.notify (config/secrets/apprise/notify.yml):
+#   apprise_notify_urls:
+#     - ntfys://ntfy.example.com/alerts
+#     - tgram://<bot token>/<chat id>
+# Installs /usr/local/bin/fleet-notify "<title>" ["<body>"] (body from stdin if omitted).
+apprise_version: "2.0.0"
+apprise_venv: /opt/apprise-venv
+apprise_config_dir: /etc/apprise
+apprise_notify_urls: []
+# Prepended to every title so you can tell hosts apart.
+apprise_title_prefix: "{{ inventory_hostname }}"

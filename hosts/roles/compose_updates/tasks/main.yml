@@ -1,0 +1,23 @@
+---
+- name: Install the update script
+  ansible.builtin.template:
+    src: fleet-compose-update.sh.j2
+    dest: /usr/local/sbin/fleet-compose-update.sh
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Install the service and timer
+  ansible.builtin.template:
+    src: "fleet-compose-update.{{ item }}.j2"
+    dest: "/etc/systemd/system/fleet-compose-update.{{ item }}"
+    mode: "0644"
+  loop: [service, timer]
+  notify: Reload systemd for compose updates
+
+- name: Enable the timer
+  ansible.builtin.systemd:
+    name: fleet-compose-update.timer
+    enabled: true
+    state: started
+    daemon_reload: true

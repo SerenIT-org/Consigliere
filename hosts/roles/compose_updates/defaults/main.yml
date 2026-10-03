@@ -1,0 +1,17 @@
+---
+# Scheduled "docker compose pull; docker compose up -d" for the Compose projects on
+# this host, with an Apprise notification (needs the apprise role: the
+# feat/compose_updates manifest requires it).
+# CAUTION: this moves every project whose images use a moving tag (:latest) to the
+# newest image. Pin versions in the roles/compose files where you don't want that, or
+# exclude a project below.
+compose_updates_schedule: "Sun *-*-* 05:00:00"
+compose_updates_randomized_delay: 30min
+# Compose files to update. With discover on, every file matching the glob is added.
+compose_updates_projects: []
+compose_updates_discover: true
+compose_updates_discover_glob: "/opt/*/docker-compose.yml"
+# Compose files to skip (exact paths).
+compose_updates_exclude: []
+# Also send a note when no image changed.
+compose_updates_notify_when_idle: false

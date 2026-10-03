@@ -1,0 +1,23 @@
+---
+- name: Install the update script
+  ansible.builtin.template:
+    src: fleet-apt-update.sh.j2
+    dest: /usr/local/sbin/fleet-apt-update.sh
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Install the service and timer
+  ansible.builtin.template:
+    src: "fleet-apt-update.{{ item }}.j2"
+    dest: "/etc/systemd/system/fleet-apt-update.{{ item }}"
+    mode: "0644"
+  loop: [service, timer]
+  notify: Reload systemd for apt updates
+
+- name: Enable the timer
+  ansible.builtin.systemd:
+    name: fleet-apt-update.timer
+    enabled: true
+    state: started
+    daemon_reload: true

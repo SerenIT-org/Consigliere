@@ -46,6 +46,15 @@ Roles:
 - `traefik_server` — renders Traefik's dynamic config per host (a shared base,
   that host's own routes gathered from `traefik_server_routes*` variables, and the
   fetched certificates); see [its README](hosts/roles/traefik_server/README.md)
+- `restic_server` — a [restic REST server](https://github.com/restic/rest-server)
+  backup target (`util: [restic]`); see [its README](hosts/roles/restic_server/README.md)
+- `apprise` — notifications through [Apprise](https://github.com/caronc/apprise) (~100
+  services); installs `fleet-notify` for other roles (`feat: [apprise]`, secret `apprise.notify`)
+- `apt_updates`, `compose_updates` — scheduled `apt update && upgrade` and `docker compose
+  pull && up -d`, each followed by an Apprise notification (`feat: [apt_updates]`,
+  `feat: [compose_updates]`; both pull in `apprise`). `compose_updates` moves `:latest`
+  images forward: pin or exclude what you don't want updated.
+- `timezone`, `dns_resolver` — optional, driven by `prop:` manifests in your repo
 - `arcane_server` / `arcane_agent` — deploys
   [Arcane](https://github.com/getarcaneapp/arcane) itself (one manager,
   agents elsewhere) — Ansible's job is getting Arcane running at all;

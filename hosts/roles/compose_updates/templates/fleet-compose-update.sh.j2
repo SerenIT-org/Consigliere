@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Managed by Ansible (hosts/roles/compose_updates). docker compose pull + up -d, then notify.
+set -uo pipefail
+notify() { command -v fleet-notify >/dev/null 2>&1 && fleet-notify "$1" "$2" || true; }
+
+exec 9>/run/fleet-compose-update.lock
+flock -n 9 || { echo "another run is in progress"; exit 0; }
+
+files=({% for f in compose_updates_projects %}{{ f | quote }} {% endfor %})
+{% if compose_updates_discover %}
+for f in {{ compose_updates_discover_glob }}; do [ -f "$f" ] && files+=("$f"); done
+{% endif %}
+exclude=({% for f in compose_updates_exclude %}{{ f | quote }} {% endfor %})
+
+image_ids() { # sorted image ids currently present for a compose file
+  docker compose -f "$1" config --images 2>/dev/null | sort -u \
+    | while read -r img; do docker image inspect -f '{% raw %}{{.Id}}{% endraw %}' "$img" 2>/dev/null || echo "missing:$img"; done | sort
+}
+
+updated=(); failed=(); seen=" "
+for f in "${files[@]}"; do
+  case "$seen" in *" $f "*) continue ;; esac; seen="$seen$f "
+  skip=0; for x in "${exclude[@]}"; do [ "$x" = "$f" ] && skip=1; done; [ "$skip" = 1 ] && continue
+  name="$(basename "$(dirname "$f")")"
+  before="$(image_ids "$f")"
+  if ! docker compose -f "$f" pull --quiet 2>/tmp/fleet-compose-pull.err; then
+    failed+=("$name: pull failed ($(tail -n 1 /tmp/fleet-compose-pull.err))"); continue
+  fi
+  after="$(image_ids "$f")"
+  if ! docker compose -f "$f" up -d --remove-orphans >/dev/null 2>/tmp/fleet-compose-up.err; then
+    failed+=("$name: up -d failed ($(tail -n 1 /tmp/fleet-compose-up.err))"); continue
+  fi
+  [ "$before" != "$after" ] && updated+=("$name")
+done
+rm -f /tmp/fleet-compose-pull.err /tmp/fleet-compose-up.err
+
+if [ "{% raw %}${#failed[@]}{% endraw %}" -gt 0 ]; then
+  notify "docker compose update: {% raw %}${#failed[@]}{% endraw %} failed" "$(printf '%s\n' "${failed[@]}"; [ "{% raw %}${#updated[@]}{% endraw %}" -gt 0 ] && echo "updated: ${updated[*]}")"
+  exit 1
+fi
+if [ "{% raw %}${#updated[@]}{% endraw %}" -gt 0 ]; then
+  notify "docker compose updated: ${updated[*]}" "Pulled new images and recreated: ${updated[*]}"
+{% if compose_updates_notify_when_idle %}
+else
+  notify "docker compose: no new images" "All projects are current."
+{% endif %}
+fi
