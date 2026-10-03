@@ -80,7 +80,7 @@ Arkeep's own agent took over scheduling/retention. All real values (server
 address, secrets) come from the private fleet-config repo.
 
 **One thing that can't be automated**: the shared `arkeep_agent_secret` and
-`arkeep_server_secret_key` go in vault like any other secret, but there's no
+`arkeep_server_secret_key` go in a sops secret like any other, but there's no
 verified API for *minting* things — enrollment itself is automatic
 (auto-PKI), so this is simpler than it sounds; see
 `hosts/roles/arkeep_server/README.md` for the one manual step there is

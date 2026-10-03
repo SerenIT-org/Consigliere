@@ -2,3 +2,4 @@
 description: "Semaphore, the on-demand runner"
 order: 60
 roles: [semaphore_server]
+secrets: [semaphore.server]

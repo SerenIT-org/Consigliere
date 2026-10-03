@@ -14,7 +14,7 @@
     msg: >-
       arkeep_server_secret_key / arkeep_agent_secret are not set -- these come
       from your private fleet-config repo's secrets arkeep.server and arkeep.agent
-      (scripts/vault.sh create arkeep.server / arkeep.agent).
+      (scripts/secrets.sh create arkeep.server / arkeep.agent).
       arkeep_agent_secret must be identical to the value every
       arkeep_agent host uses -- it's a shared secret, not per-host.
   when: >-

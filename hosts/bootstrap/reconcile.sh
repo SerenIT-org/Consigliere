@@ -11,7 +11,7 @@
 #        inventory/groups.yml   REQUIRED  turns those values into groups
 #        tags/<dim>/<value>.yml optional  what each util:/feat: tag runs (roles,
 #                                         task files); overrides hosts/tags/
-#        vars/group/, vars/host/ REQUIRED  variables + vault-encrypted secrets
+#        vars/group/, vars/host/ REQUIRED  variables; secrets are sops-encrypted
 #        site.yml               optional  which roles run where (default: the
 #                                         framework's hosts/site.yml)
 #        roles/                 optional  your own site-specific roles/apps
@@ -54,10 +54,10 @@ FLEET_CONFIG_SUBDIR="${FLEET_CONFIG_SUBDIR:-config}"
 
 # Host-local credentials, installed once by bootstrap.sh -- never inside
 # either repo. The deploy key is read-only access to the fleet-config repo
-# only; each file in vault.d/ is the password for the vault id of the same name.
+# only; age.key is this host's private key for decrypting its sops secrets.
 CRED_DIR="${RECONCILE_CRED_DIR:-/etc/fleet-reconcile}"
 DEPLOY_KEY="$CRED_DIR/deploy_key"
-VAULT_DIR="$CRED_DIR/vault.d"   # one password file per vault id (see below)
+AGE_KEY_FILE="$CRED_DIR/age.key"
 
 mkdir -p "$WORKDIR"
 
@@ -110,7 +110,7 @@ mkdir -p "$RUN_DIR"
 ln -s "$CONF/vars/group" "$RUN_DIR/group_vars"
 if [ -d "$CONF/vars/host" ]; then ln -s "$CONF/vars/host" "$RUN_DIR/host_vars"; fi
 # Per-host secrets (e.g. secrets/cw/<certificate>.yml): not loaded automatically;
-# roles read only the files a host asked for, each with its own vault id.
+# roles read only the files a host asked for, and can decrypt only its own.
 EXTRA_VARS=()
 if [ -d "$CONF/secrets" ]; then
   ln -s "$CONF/secrets" "$RUN_DIR/secrets"
@@ -129,19 +129,11 @@ fi
 export ANSIBLE_ROLES_PATH="$FRAMEWORK_DIR/hosts/roles${CONF:+:$CONF/roles}"
 export ANSIBLE_CONFIG="$FRAMEWORK_DIR/hosts/ansible.cfg"
 
-# Secrets are split by scope: config/vars/group/<group>/vault.yml is encrypted
-# with a vault id named after the group (`base` for group/all). A host holds a
-# password file in vault.d/ ONLY for the scopes it should read, and Ansible
-# only loads a group's files for hosts in that group -- so a host never
-# decrypts (or can decrypt) secrets outside its scopes. Per-host secrets in
-# config/secrets/<kind>/<name>.yml use the vault id <kind>.<name> (kind cw =
-# Cert Warden certificates) and are read only by hosts that request them.
-VAULT_ARGS=()
-if [ -d "$VAULT_DIR" ]; then
-  for f in "$VAULT_DIR"/*; do
-    [ -f "$f" ] && VAULT_ARGS+=(--vault-id "$(basename "$f")@$f")
-  done
-fi
+# Secrets live in config/secrets/<kind>/<name>.yml, encrypted with sops to the age
+# public keys of the hosts allowed to read them. This host can decrypt only the
+# files it is a recipient of, using the private key in $AGE_KEY_FILE; the roles
+# read just the ones they need (see the load_secrets role).
+EXTRA_VARS+=(-e "fleet_age_key_file=$AGE_KEY_FILE")
 
 # Inventory: this host (Tailscale name), the fleet's host table, then the rules
 # that turn table values into groups. The table lists every host but the run is
@@ -163,7 +155,6 @@ run_playbook() {
   # shellcheck disable=SC2086  # ANSIBLE_EXTRA_ARGS is intentionally word-split
   ansible-playbook \
     "${INV_ARGS[@]}" --limit "$SELF" \
-    ${VAULT_ARGS[@]+"${VAULT_ARGS[@]}"} \
     ${EXTRA_VARS[@]+"${EXTRA_VARS[@]}"} \
     ${ANSIBLE_EXTRA_ARGS:-} \
     "$@" site.yml

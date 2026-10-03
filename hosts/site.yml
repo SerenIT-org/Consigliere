@@ -20,6 +20,7 @@
   roles:
     - baseline
     - tailscale
+    - sops
     - docker
 
 # What else runs is decided by tag manifests (hosts/tags/<dimension>/<value>.yml,

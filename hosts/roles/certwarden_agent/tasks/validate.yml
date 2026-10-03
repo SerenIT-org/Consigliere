@@ -1,6 +1,6 @@
 ---
 # Works out which certificates this host asked for, loads the API keys for
-# exactly those (one vault file per certificate, vault id cw.<name>) and refuses
+# exactly those (one sops file per certificate, scope cw.<name>) and refuses
 # to continue on missing or placeholder configuration. Separate file so it can
 # be tested alone.
 
@@ -44,7 +44,7 @@
     quiet: true
 
 # Only the files for requested certificates are read, so a host never needs (or
-# is given) the vault password of a certificate it was not granted.
+# is a recipient of) the secret of a certificate it was not granted.
 - name: Load the API keys of each requested certificate
   ansible.builtin.include_tasks: load_secret.yml
   loop: "{{ _certwarden_agent_names }}"
@@ -66,5 +66,5 @@
     that: _certwarden_agent_placeholders | default([]) | length == 0
     fail_msg: >-
       Placeholder API keys for {{ _certwarden_agent_placeholders | default([]) }}.
-      Edit with: scripts/vault.sh edit cw.<certificate name>
+      Edit with: scripts/secrets.sh edit cw.<certificate name>
     quiet: true

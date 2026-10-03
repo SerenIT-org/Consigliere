@@ -1,4 +1,5 @@
 ---
-description: "Any cert:<name> tag: the host fetches those certificates from Cert Warden (each needs a cw.<name> secret grant)"
+description: "Any cert:<name> tag: the host fetches those certificates from Cert Warden (its cw.<name> secret is granted automatically)"
 order: 35
 requires: [feat/certwarden]
+secrets: ["cw.{value}"]

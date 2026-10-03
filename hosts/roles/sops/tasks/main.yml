@@ -1,0 +1,8 @@
+---
+# Keeps the pinned sops release installed (it decrypts this host's secrets). The
+# same script bootstrap.sh uses; idempotent and checksum-verified.
+- name: Install the pinned sops release
+  ansible.builtin.command: "{{ role_path }}/../../bootstrap/install-sops.sh"
+  register: _sops_install
+  changed_when: "'INSTALLED' in _sops_install.stdout"
+  when: not ansible_check_mode and ansible_system == 'Linux'

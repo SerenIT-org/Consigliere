@@ -1,4 +1,5 @@
 ---
 load_secrets_scopes: []
-# Set by reconcile.sh to the fleet repo's config/secrets.
+# Set by reconcile.sh to the fleet repo's config/secrets and this host's age key.
 load_secrets_dir: "{{ fleet_secrets_dir | default(playbook_dir ~ '/secrets') }}"
+load_secrets_age_key_file: "{{ fleet_age_key_file | default('/etc/fleet-reconcile/age.key') }}"

@@ -105,7 +105,7 @@ Private). That repo has two jobs:
    `groups.yml`), optionally which roles run where (`config/site.yml`), your own roles/apps,
    and your runbooks.
 2. **Secrets and variables**: `config/vars/group/`, `config/vars/host/`, and the
-   ansible-vault encrypted `vault.yml`.
+   sops-encrypted files under `config/secrets/`.
 
 ### Inventory and group names
 
@@ -152,21 +152,27 @@ the *first* step. `hosts/bootstrap/bootstrap.sh`:
    if you have one, else the default, + framework and fleet roles), and runs
    the playbook against this host.
 5. Installs `fleet-reconcile.timer` so it repeats on a schedule; each run
-   re-syncs both repos, so drift in either is corrected. Set
-   `ANSIBLE_EXTRA_ARGS="--check --diff"` for a read-only drift report.
+   re-syncs both repos, so drift in either is corrected. Every apply is preceded by
+   a check pass; set `RECONCILE_MODE=check` for a report-only host.
 
-Vault passwords can't be generated: supply them with `VAULT_PASSWORDS_DIR`, a
-directory with one file per secret scope (installed to
-`/etc/fleet-reconcile/vault.d/`). Give a host only the scopes it should read.
+Secrets are not copied to hosts. The host generates its own age key and prints the
+public half; you grant it its secrets from your admin machine
+(`scripts/access.sh add-host <name> <key>`, `sync`, push). See "Secrets" below.
 
 ## Secrets
 
-Nothing sensitive is committed in this repo, ever. Auth keys, join tokens and
-backup credentials live in your private repo's ansible-vault encrypted
-`config/vars/group/<scope>/vault.yml`, one file per scope with its own vault id
-(`base` for `all`) so each host can be given only the passwords it needs; the
-template ships a pre-commit guard that
-refuses to commit it unencrypted.
+Nothing sensitive is committed in this repo, ever. Backup credentials, API keys
+and the like live in your private repo's `config/secrets/<kind>/<name>.yml`,
+encrypted with [sops](https://github.com/getsops/sops) to the age public keys of
+the hosts allowed to read each file. A host can decrypt only the files it is a
+recipient of, with a private key that never leaves it (`/etc/fleet-reconcile/age.key`),
+so there are no shared passwords to copy around. Who may read what is derived from
+each host's tags (`config/inventory/hosts.yml` plus the tag manifests'
+`secrets:` lists): add `util: [arkeep]` to a host, run `scripts/access.sh sync`, and
+it can read the Arkeep secrets. The `load_secrets` role is the only place that reads
+secrets, so the backend can change later. Tailscale auth keys are never stored:
+`bootstrap.sh` prompts for one. The template ships a pre-commit guard that refuses
+to commit a secret unencrypted.
 
 ## CI
 

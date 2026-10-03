@@ -6,19 +6,17 @@
 #   certwarden_agent_server_url   fleet vars  e.g. http://100.x.y.z:4050
 #   cert: [<name>, ...]           host table  the certificates this host fetches (preferred)
 #   certwarden_agent_certs*       fleet vars  [{name: <Cert Warden certificate name>}]  (also works)
-#   API keys                      VAULT       one file per certificate:
-#                                 config/secrets/cw/<name>.yml, vault id cw.<name>,
+#   API keys                      SECRET      one sops file per certificate:
+#                                 config/secrets/cw/<name>.yml (scope cw.<name>),
 #                                 containing `cert:` and `key:` (the two API keys)
 # Any variable whose name starts with certwarden_agent_certs is collected, so a
-# group file and one host's file can each contribute. A host reads (and needs
-# the vault password for) only the certificates it lists.
+# group file and one host's file can each contribute. A host reads (and is a
+# sops recipient of) only the certificates it lists.
 #
 # Output, per certificate:  <dir>/<name>/fullchain.pem  and  <dir>/<name>/privkey.pem
 
 certwarden_agent_dir: "{{ common_dir | default('/opt/common') }}/certs"
 certwarden_agent_server_url: ""
-# Set by reconcile.sh to the fleet repo's config/secrets.
-certwarden_agent_secrets_dir: "{{ fleet_secrets_dir | default(playbook_dir ~ '/secrets') }}"
 certwarden_agent_certs: []
 
 # Cert Warden presents a self-signed certificate until it has issued one for

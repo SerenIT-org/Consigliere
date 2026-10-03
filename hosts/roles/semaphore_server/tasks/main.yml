@@ -10,7 +10,7 @@
     msg: >-
       semaphore_server_admin_password / semaphore_server_access_key_encryption are not
       set -- put them in your fleet-config secret semaphore.server
-      (scripts/vault.sh create semaphore.server).
+      (scripts/secrets.sh create semaphore.server).
   when: >-
     semaphore_server_admin_password is not defined or not semaphore_server_admin_password or
     semaphore_server_admin_password is search('CHANGEME') or

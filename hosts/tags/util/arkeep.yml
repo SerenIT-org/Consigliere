@@ -2,3 +2,4 @@
 description: "Arkeep server, the central backup console"
 order: 40
 roles: [arkeep_server]
+secrets: [arkeep.agent, arkeep.server]

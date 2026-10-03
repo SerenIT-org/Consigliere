@@ -18,10 +18,10 @@ proxy side of this framework doesn't depend on it: anything that writes
    challenge providers. Credentials entered there live in the data volume.
 3. Create a private key and a certificate for each name set (e.g. a wildcard),
    with an API key for each (a certificate API key and a private-key API key).
-4. Put those two keys in a vault file of their own for that certificate:
-   `scripts/vault.sh create cw.<name>` then `edit` (file `config/secrets/cw/<name>.yml`,
-   vault id `cw.<name>`; see the template's `_template.yml.example`). Only hosts that
-   list `<name>` in `certwarden_agent_certs` read it, and only they get its password.
+4. Put those two keys in a secret of their own for that certificate:
+   `scripts/secrets.sh create cw.<name>` then `edit` (file `config/secrets/cw/<name>.yml`;
+   see the template's `_template.yml.example`). Only hosts that
+   list `<name>` (as `cert:` in `hosts.yml`) read it; `scripts/access.sh sync` grants them.
 
 (The UI steps are from my reading of the project; verify against its docs.)
 

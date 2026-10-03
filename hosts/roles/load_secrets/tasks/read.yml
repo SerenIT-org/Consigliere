@@ -1,0 +1,33 @@
+---
+# Decrypts one scope into the fact _ls_data (a dict). Input: _ls_scope.
+- name: "Decrypt secret {{ _ls_scope }}"
+  ansible.builtin.command:
+    argv:
+      - sops
+      - --decrypt
+      - --output-type
+      - json
+      - "{{ load_secrets_dir }}/{{ _ls_scope.split('.', 1)[0] }}/{{ _ls_scope.split('.', 1)[1] }}.yml"
+  environment:
+    SOPS_AGE_KEY_FILE: "{{ load_secrets_age_key_file }}"
+  register: _ls_out
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  no_log: true
+
+- name: "Stop with a clear message if {{ _ls_scope }} cannot be decrypted"
+  ansible.builtin.fail:
+    msg: >-
+      Cannot decrypt secret {{ _ls_scope }}
+      ({{ load_secrets_dir }}/{{ _ls_scope.split('.', 1)[0] }}/{{ _ls_scope.split('.', 1)[1] }}.yml).
+      Either the file is missing from the fleet repo (scripts/secrets.sh create {{ _ls_scope }}),
+      or this host is not a recipient of it: grant it from your admin machine
+      (scripts/access.sh show; scripts/access.sh sync; push). sops said:
+      {{ (_ls_out.stderr | default('') | trim).splitlines() | first | default('(nothing)') }}
+  when: _ls_out.rc != 0
+
+- name: "Remember {{ _ls_scope }}"
+  ansible.builtin.set_fact:
+    _ls_data: "{{ _ls_out.stdout | from_json }}"
+  no_log: true

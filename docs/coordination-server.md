@@ -15,15 +15,14 @@ Docker image build, any role on a real host.
   (`arkeep_server_bind_address`).
 - Your private fleet repo, created from `consigliere-fleet-template` (private),
   with `config/inventory/hosts.yml` (the host table, each host's `util:`/`feat:`
-  values) and `groups.yml`, `config/vars/` filled in, and the vault created and
-  encrypted. Run `scripts/preflight.sh --strict` in it: it must pass. The vault
-  needs `arkeep_agent_secret`, `arkeep_server_secret_key`, `arcane_server_encryption_key`,
-  `semaphore_server_admin_password`, `semaphore_server_access_key_encryption` for the roles
-  this host runs.
+  values) and `groups.yml`, `config/vars/` filled in, and the secrets created and
+  encrypted (`scripts/secrets.sh init-admin`, then `create`/`edit`). Run
+  `scripts/preflight.sh --strict` in it: it must pass. The roles this host runs need
+  these secrets: `arkeep.agent`, `arkeep.server`, `arcane.server`, `semaphore.server`.
 - Add the host to `config/inventory/hosts.yml` (key = its Tailscale hostname)
   with `util:`/`feat:` for what it should run (e.g. `util: [arkeep]` for the server). Hosts already on the
-  tailnet need no auth key; a brand-new host needs one (put `tailscale_authkey`
-  in the vault, or export `TAILSCALE_AUTHKEY` for the first run).
+  tailnet need no auth key; a brand-new host needs one (bootstrap prompts for one, or set
+  `TAILSCALE_AUTHKEY` for that run; it is never stored).
 - A GitHub token that may manage the fleet repo's deploy keys (optional; it
   lets bootstrap register the host's key automatically, otherwise you'll paste
   the key it prints).
@@ -33,26 +32,25 @@ Docker image build, any role on a real host.
 
 ## 1. Bootstrap the host (Debian, as root)
 Get `hosts/bootstrap/bootstrap.sh` onto the host (it's in the framework repo),
-copy the vault passwords over (one file per scope this host may read, in a
-directory; passwords can't be generated), then:
+then:
 
     FRAMEWORK_REPO_URL=https://github.com/almadon/consigliere.git \
     FLEET_CONFIG_REPO_URL=git@github.com:<you>/<fleet-repo>.git \
     FLEET_CONFIG_REGISTER_TOKEN=<token, optional> \
-    VAULT_PASSWORDS_DIR=/root/vault-passwords \
     HEARTBEAT_URL=<your heartbeat url> \
     ./hosts/bootstrap/bootstrap.sh
 
 The host generates its own read-only deploy key and has it registered (or
-prints it for you to add and waits), then does the first reconcile and
-installs the timer. `shred` the vault password copies afterwards. Watch
+prints it for you to add and waits), then generates its age key and prints the public
+half for you to grant (`scripts/access.sh add-host <name> <key>`, `sync`, push). The
+first reconcile is check-only; you approve the apply and the timer. Watch
 `journalctl -u fleet-reconcile -f`; expect the first failures here.
 
 ## 2. Verify each service (over Tailscale, not the public IP)
 - Arcane   http://<tailscale-ip>:3552 — create the admin account.
 - Arkeep   http://<tailscale-ip>:8080 — create the admin account; note the
   gRPC address <tailscale-ip>:9090 for agents.
-- Semaphore http://<tailscale-ip>:3000 — log in with the vault admin password.
+- Semaphore http://<tailscale-ip>:3000 — log in with the `semaphore.server` admin password.
 - Heartbeat check turns green after a successful reconcile.
 
 ## 3. Deploy the console (manual for now)

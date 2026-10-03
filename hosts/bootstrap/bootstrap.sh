@@ -7,7 +7,7 @@
 #
 # Usage:
 #   FRAMEWORK_REPO_URL=... FLEET_CONFIG_REPO_URL=git@github.com:you/fleet.git \
-#   VAULT_PASSWORDS_DIR=/path/to/dir ./bootstrap.sh
+#   ./bootstrap.sh
 #
 # Access to the PRIVATE fleet-config repo is set up for you
 # (ensure-access.sh): the host generates its own read-only deploy key and, if
@@ -16,11 +16,9 @@
 # otherwise it prints the public key and waits for you to add it. To use a key
 # you already have instead, pass FLEET_CONFIG_DEPLOY_KEY_FILE.
 #
-# Vault passwords can't be generated, so supply them: VAULT_PASSWORDS_DIR is a
-# directory with one file per vault id, named for the id (`base`, plus one per
-# scoped group this host belongs to, e.g. `certwarden_agent`). Give a host ONLY the
-# passwords for the scopes it should be able to read. They are installed to
-# /etc/fleet-reconcile/vault.d/ (0600); delete the source copies afterwards.
+# Secrets are encrypted with sops to per-host age keys: this host generates its
+# own key (ensure-age-key.sh), prints the public half, and you grant it its
+# secrets from your admin machine (scripts/access.sh). No passwords are copied.
 set -euo pipefail
 
 # Ask for anything missing when run by hand on a terminal.
@@ -38,11 +36,10 @@ WORKDIR="/opt/fleet-reconcile"
 CRED_DIR="/etc/fleet-reconcile"
 
 # Paths (on this host, already copied over out-of-band) to the read-only
-# deploy key for the fleet-config repo and the ansible-vault password.
+# deploy key for the fleet-config repo.
 # Both get moved into $CRED_DIR with tight permissions; reconcile.sh reads
 # them from there on every run.
 FLEET_CONFIG_DEPLOY_KEY_FILE="${FLEET_CONFIG_DEPLOY_KEY_FILE:-}"
-VAULT_PASSWORDS_DIR="${VAULT_PASSWORDS_DIR:-}"
 
 # Tailscale auth key: only needed if this host is not on the tailnet yet. Never
 # stored; it lives in this process's environment for the first run only.
@@ -54,18 +51,12 @@ export TAILSCALE_AUTHKEY="${TAILSCALE_AUTHKEY:-}"
 
 echo "==> Installing git + ansible"
 apt-get update
-apt-get install -y git ansible curl
+apt-get install -y git ansible curl age
 
 echo "==> Installing host-local credentials"
 install -d -m 0700 "$CRED_DIR"
 if [ -n "$FLEET_CONFIG_DEPLOY_KEY_FILE" ]; then
   install -m 0600 "$FLEET_CONFIG_DEPLOY_KEY_FILE" "$CRED_DIR/deploy_key"
-fi
-if [ -n "$VAULT_PASSWORDS_DIR" ]; then
-  install -d -m 0700 "$CRED_DIR/vault.d"
-  for f in "$VAULT_PASSWORDS_DIR"/*; do
-    [ -f "$f" ] && install -m 0600 "$f" "$CRED_DIR/vault.d/$(basename "$f")"
-  done
 fi
 
 echo "==> Writing environment file for future reconciliation runs"
@@ -84,9 +75,16 @@ echo "==> Cloning framework repo (to get reconcile.sh)"
 mkdir -p "$WORKDIR"
 git clone ${FRAMEWORK_REPO_BRANCH:+--branch "$FRAMEWORK_REPO_BRANCH"} "$FRAMEWORK_REPO_URL" "$WORKDIR/framework"
 
+echo "==> Installing sops (pinned, checksum-verified)"
+"$WORKDIR/framework/hosts/bootstrap/install-sops.sh"
+
 echo "==> Making sure this host can read the private fleet-config repo"
 CRED_DIR="$CRED_DIR" FLEET_CONFIG_REPO_URL="$FLEET_CONFIG_REPO_URL" \
   "$WORKDIR/framework/hosts/bootstrap/ensure-access.sh"
+
+echo "==> This host's secrets identity (age key)"
+CRED_DIR="$CRED_DIR" FRAMEWORK_DIR="$WORKDIR/framework" \
+  "$WORKDIR/framework/hosts/bootstrap/ensure-age-key.sh"
 
 set -a
 source /etc/fleet-reconcile.env

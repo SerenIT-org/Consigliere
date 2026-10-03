@@ -1,17 +1,11 @@
 ---
-- name: "Read secret {{ _ls_scope }}"
-  ansible.builtin.include_vars:
-    file: "{{ load_secrets_dir }}/{{ _ls_scope.split('.', 1)[0] }}/{{ _ls_scope.split('.', 1)[1] }}.yml"
-  register: _ls_read
-  ignore_errors: true
-  no_log: true
+- name: "Read {{ _ls_scope }}"
+  ansible.builtin.include_tasks: read.yml
 
-- name: "Stop with a clear message if {{ _ls_scope }} cannot be read"
-  ansible.builtin.fail:
-    msg: >-
-      Cannot read secret {{ _ls_scope }}: expected
-      {{ load_secrets_dir }}/{{ _ls_scope.split('.', 1)[0] }}/{{ _ls_scope.split('.', 1)[1] }}.yml
-      encrypted with vault id {{ _ls_scope }}. Either the file is missing from the
-      fleet repo (create it: scripts/vault.sh create {{ _ls_scope }}), or this host
-      does not hold the password file {{ _ls_scope }} (it was not granted this secret).
-  when: _ls_read is failed
+- name: "Make the values of {{ _ls_scope }} available as variables"
+  ansible.builtin.set_fact:
+    "{{ item.key }}": "{{ item.value }}"
+  loop: "{{ _ls_data | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  no_log: true
