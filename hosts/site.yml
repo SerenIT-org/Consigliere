@@ -22,62 +22,15 @@
     - tailscale
     - docker
 
-- name: Wazuh agents (opt-in via the wazuh_agent group, once a manager exists)
-  hosts: wazuh_agent
+# What else runs is decided by tag manifests (hosts/tags/<dimension>/<value>.yml,
+# overridable and extendable in your fleet repo's config/tags/): each tag in the
+# host's table entry (util, feat, ...) names roles and task files. To change what
+# a tag runs, edit its manifest; to add a role, drop it in roles/ and name it in
+# a manifest. No edit to this file is needed.
+- name: Roles and tasks selected by tag manifests
+  hosts: all
   become: true
-  roles:
-    - wazuh_agent
-
-- name: Wazuh manager host prerequisites
-  hosts: wazuh_server
-  become: true
-  roles:
-    - wazuh_server
-
-- name: Arkeep server
-  hosts: arkeep_server
-  become: true
-  roles:
-    - arkeep_server
-
-- name: Arkeep agents
-  hosts: arkeep_agent
-  become: true
-  roles:
-    - arkeep_agent
-
-- name: Arcane manager
-  hosts: arcane_server
-  become: true
-  roles:
-    - arcane_server
-
-- name: Arcane agents
-  hosts: arcane_agent
-  become: true
-  roles:
-    - arcane_agent
-
-- name: Semaphore (coordination server)
-  hosts: semaphore_server
-  become: true
-  roles:
-    - semaphore_server
-
-- name: Cert Warden (central ACME client)
-  hosts: certwarden_server
-  become: true
-  roles:
-    - certwarden_server
-
-- name: Certificate consumers (fetch from Cert Warden)
-  hosts: certwarden_agent
-  become: true
-  roles:
-    - certwarden_agent
-
-- name: Traefik edge configuration
-  hosts: traefik_server
-  become: true
-  roles:
-    - traefik_server
+  tasks:
+    - name: Run what this host's tags select
+      ansible.builtin.include_role:
+        name: fleet_plan

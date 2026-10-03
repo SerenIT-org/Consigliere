@@ -1,5 +1,5 @@
 ---
-# Applied to the traefik_server group: hosts that run Traefik as a reverse
+# Applied to hosts tagged util:traefik: hosts that run Traefik as a reverse
 # proxy. This role does NOT deploy Traefik (the stack lives in the geotraefik
 # repo); it prepares what that stack mounts on the host:
 #
@@ -14,7 +14,7 @@
 # ROUTES: define one or more variables whose names start with
 # traefik_server_routes (e.g. traefik_server_routes_vault in
 # config/vars/host/web-host.yml, or traefik_server_routes_arkeep in the
-# arkeep_server group file). This role gathers every such variable that the host
+# the util:arkeep hosts file). This role gathers every such variable that the host
 # can see -- i.e. from the groups it belongs to plus its own host file -- so the
 # route follows the service. Each route:
 #   - name:        unique, [a-z0-9-]

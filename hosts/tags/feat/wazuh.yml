@@ -1,0 +1,4 @@
+---
+description: "Wazuh agent (needs a Wazuh manager)"
+order: 15
+roles: [wazuh_agent]

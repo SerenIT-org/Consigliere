@@ -1,0 +1,4 @@
+---
+description: "Arcane edge agent"
+order: 55
+roles: [arcane_agent]

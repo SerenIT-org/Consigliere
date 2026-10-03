@@ -1,0 +1,4 @@
+---
+# Set by a prop manifest (e.g. prop/tz_est.yml: vars: {timezone_name: America/New_York})
+# or any vars layer. Linux only (timedatectl).
+timezone_name: ""

@@ -1,0 +1,19 @@
+---
+- name: Require a timezone name
+  ansible.builtin.assert:
+    that: timezone_name | length > 0
+    fail_msg: >-
+      timezone_name is not set. Give it in a prop manifest's vars (config/tags/prop/<name>.yml)
+      or in vars/group or vars/host, e.g. America/New_York.
+    quiet: true
+
+- name: Read the current timezone
+  ansible.builtin.command: timedatectl show --property=Timezone --value
+  register: _timezone_current
+  changed_when: false
+  check_mode: false
+
+- name: Set the timezone
+  ansible.builtin.command: "timedatectl set-timezone {{ timezone_name | quote }}"
+  when: _timezone_current.stdout | trim != timezone_name
+  changed_when: true

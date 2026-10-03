@@ -1,0 +1,35 @@
+---
+- name: Require DNS servers
+  ansible.builtin.assert:
+    that: dns_resolver_servers | length > 0
+    fail_msg: >-
+      dns_resolver_servers is not set. Give it in a prop manifest's vars
+      (config/tags/prop/<name>.yml) or in vars/group or vars/host.
+    quiet: true
+
+- name: Check that systemd-resolved is in use
+  ansible.builtin.command: systemctl is-active systemd-resolved
+  register: _dns_resolver_active
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Stop with a clear message if it is not
+  ansible.builtin.fail:
+    msg: >-
+      systemd-resolved is not active on this host, so dns_resolver can't set DNS
+      without taking over /etc/resolv.conf. Enable systemd-resolved or drop this tag.
+  when: _dns_resolver_active.stdout | trim != 'active'
+
+- name: Create the resolved drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/resolved.conf.d
+    state: directory
+    mode: "0755"
+
+- name: Write the DNS drop-in
+  ansible.builtin.template:
+    src: consigliere-dns.conf.j2
+    dest: /etc/systemd/resolved.conf.d/10-consigliere-dns.conf
+    mode: "0644"
+  notify: Restart systemd-resolved

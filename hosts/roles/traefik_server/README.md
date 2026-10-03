@@ -12,7 +12,7 @@ By ordinary Ansible variable scope. Define any variable named
 it should apply:
 
 - `config/vars/host/web-host.yml`: only on that host.
-- `config/vars/group/arkeep_server.yml`: wherever that service runs, so the route
+- `config/vars/group/util_arkeep.yml`: wherever that service runs, so the route
   follows the service.
 - `config/vars/group/all.yml`: on every proxy.
 

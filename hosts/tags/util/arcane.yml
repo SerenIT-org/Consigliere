@@ -1,0 +1,4 @@
+---
+description: "Arcane manager"
+order: 50
+roles: [arcane_server]

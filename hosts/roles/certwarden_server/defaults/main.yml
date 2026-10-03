@@ -1,5 +1,5 @@
 ---
-# Applied to the certwarden_server group (ONE host: the central ACME client).
+# Applied to hosts tagged util:certwarden (ONE host: the central ACME client).
 # Cert Warden (github.com/gregtwallace/certwarden) issues certificates once and
 # serves them to the hosts that need them (see certwarden_agent), so DNS API
 # credentials live on this one host instead of on every proxy.

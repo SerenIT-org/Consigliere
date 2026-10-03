@@ -1,0 +1,9 @@
+---
+# Global DNS servers via systemd-resolved (Linux hosts that use it). Set by a prop
+# manifest, e.g. prop/dns_quad9.yml:
+#   vars: {dns_resolver_servers: [9.9.9.9, 149.112.112.112], dns_resolver_over_tls: opportunistic}
+# Tailscale/MagicDNS keeps working: it adds its own per-link resolver.
+dns_resolver_servers: []
+dns_resolver_fallback: []
+# no | opportunistic | yes
+dns_resolver_over_tls: "no"

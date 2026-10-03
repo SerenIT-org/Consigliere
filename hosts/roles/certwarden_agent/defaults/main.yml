@@ -1,10 +1,11 @@
 ---
-# Applied to the certwarden_agent group: every host that consumes certificates
+# Applied to hosts tagged feat:certwarden: every host that consumes certificates
 # from the central Cert Warden (typically the Traefik hosts).
 #
 # What goes where (layered, so a host only sees what it should):
 #   certwarden_agent_server_url   fleet vars  e.g. http://100.x.y.z:4050
-#   certwarden_agent_certs*       fleet vars  [{name: <Cert Warden certificate name>}]
+#   cert: [<name>, ...]           host table  the certificates this host fetches (preferred)
+#   certwarden_agent_certs*       fleet vars  [{name: <Cert Warden certificate name>}]  (also works)
 #   API keys                      VAULT       one file per certificate:
 #                                 config/secrets/cw/<name>.yml, vault id cw.<name>,
 #                                 containing `cert:` and `key:` (the two API keys)

@@ -1,0 +1,4 @@
+---
+description: "Class only: hosts running Docker workloads (no extra roles; Docker itself is in the baseline)"
+order: 50
+roles: []

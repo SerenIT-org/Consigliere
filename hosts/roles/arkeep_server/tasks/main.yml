@@ -1,5 +1,5 @@
 ---
-# Applied to the arkeep_server group. Deploys the Arkeep server (central backup
+# Applied to hosts tagged util:arkeep. Deploys the Arkeep server (central backup
 # console) via Docker Compose -- see defaults/main.yml for what's expected
 # from your private fleet-config repo.
 

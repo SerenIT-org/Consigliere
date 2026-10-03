@@ -13,7 +13,7 @@
 - name: Fail fast if no Wazuh server address is configured
   ansible.builtin.fail:
     msg: >-
-      wazuh_server_addr is not set -- point it at the wazuh_server group
+      wazuh_server_addr is not set -- point it at the util:wazuh hosts
       host's Tailscale address (see stacks/wazuh/README.md) before this
       role can enroll an agent.
   when: >-

@@ -113,15 +113,28 @@ Each host reconciles itself, so the inventory is just that host:
 `hosts/inventory/tailscale_self.py` reports it under its Tailscale hostname
 (from the local `tailscale status`, no API key). Your private repo's
 `config/inventory/hosts.yml` is the host table: one entry per host, keyed by that
-hostname, with values like `type`, `site`, `util` and a `run:` list. `groups.yml`
+hostname, with values like `type`, `site`, `util` and `feat`. `groups.yml`
 turns those values into groups (`type_vps`, `site_home`, `util_rpc_proxy`, ...)
-and each host's `run:` list into the framework's stable group names, which is all
-`hosts/site.yml` refers to. The run is limited to the host itself, and OS groups
-(`os_linux_debian`, ...) are added automatically. Tailscale tags are not used for
-grouping or as a source of truth. The framework's groups are: `arkeep_server`,
-`arkeep_agent`, `arcane_server`, `arcane_agent`, `semaphore_server`,
-`wazuh_server`, `wazuh_agent` (pattern: `<app>_<server|agent>`). Any extra groups you define are yours (use
+(OS groups such as `os_linux_debian` are added automatically). What a host *runs* is
+chosen by **tag manifests**: for each `util:` / `feat:` value in its entry,
+`hosts/tags/<dimension>/<value>.yml` (or the same path in your repo's `config/tags/`,
+which wins) names the roles and task files to run, e.g. `util: [traefik]` runs
+`traefik_server` and `feat: [arkeep]` runs `arkeep_agent`. Edit a manifest to change what
+a tag does; add a role plus a manifest to add a tag. `hosts/site.yml` needs no edit. The
+run is limited to the host itself, and Tailscale tags are not used for grouping or as a
+source of truth. Every tag value is also a group (`util_traefik`, `feat_arkeep`,
+`type_vps`) for attaching variables (`vars/group/util_traefik.yml`). A tag with no manifest
+is just such a class. Roles run in each manifest's `order`.
 them to attach variables). A host matching no group still gets the baseline.
+
+### Optional extensions
+
+Anything beyond the core (baseline, Tailscale, Docker, secrets, tag manifests) is an
+optional, self-contained extension: a role plus, if you like, a manifest that names it.
+Nothing runs unless a host's table entry asks for it, so adopt them one at a time.
+`timezone` and `dns_resolver` are examples; they are driven by `prop:` tags whose
+manifests live in *your* repo's `config/tags/prop/` (see the template's `.example`
+files), so which properties exist is your choice, not the framework's.
 
 ## Bootstrapping a brand-new host
 

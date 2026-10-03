@@ -1,5 +1,5 @@
 ---
-# Applied to the arcane_agent group. Deploys the Arcane agent so the central
+# Applied to hosts tagged feat:arcane. Deploys the Arcane agent so the central
 # Arcane manager can also see/manage this host's Docker. See
 # defaults/main.yml for what's expected from your private fleet-config
 # repo -- in particular, arcane_agent_token has no automated provisioning
@@ -8,7 +8,7 @@
 - name: Fail fast if the Arcane manager API URL isn't configured
   ansible.builtin.fail:
     msg: >-
-      arcane_server_api_url is not set -- it's the arcane_server group
+      arcane_server_api_url is not set -- it's the util:arcane hosts
       host's address, e.g. http://100.x.x.x:3552, set in your fleet-config
       repo's config/vars/group/ files.
   when: >-

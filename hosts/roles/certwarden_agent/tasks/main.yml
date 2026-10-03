@@ -1,5 +1,5 @@
 ---
-# Applied to certwarden_agent hosts: pulls certificates from the central Cert
+# Applied to hosts tagged feat:certwarden: pulls certificates from the central Cert
 # Warden and keeps them current. See defaults/main.yml for what goes where.
 
 - name: Validate configuration

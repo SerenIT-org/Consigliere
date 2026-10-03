@@ -1,6 +1,6 @@
 ---
 # Applied only to the host running the Wazuh manager/indexer/dashboard
-# stack (the wazuh_server group, see your groups.yml) -- not part
+# stack (the util:wazuh hosts, see your groups.yml) -- not part
 # of the universal baseline, since most fleet hosts only run the agent.
 
 - name: Set vm.max_map_count for the Wazuh indexer (OpenSearch requirement)

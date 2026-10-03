@@ -1,0 +1,4 @@
+---
+description: "Traefik reverse proxy host (per-host routes, certificates from Cert Warden)"
+order: 90
+roles: [traefik_server]

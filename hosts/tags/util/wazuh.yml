@@ -1,0 +1,4 @@
+---
+description: "Wazuh manager host prerequisites"
+order: 10
+roles: [wazuh_server]

@@ -1,0 +1,4 @@
+---
+description: "Cert Warden, the central ACME client"
+order: 30
+roles: [certwarden_server]

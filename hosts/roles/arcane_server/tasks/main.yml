@@ -1,5 +1,5 @@
 ---
-# Applied to the arcane_server group. Deploys Arcane's manager UI behind a
+# Applied to hosts tagged util:arcane. Deploys Arcane's manager UI behind a
 # docker-socket-proxy (this node is internet-facing). See defaults/main.yml
 # for what's expected from your private fleet-config repo.
 

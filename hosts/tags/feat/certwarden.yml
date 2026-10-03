@@ -1,0 +1,4 @@
+---
+description: "Fetches certificates from Cert Warden (needs a cw.<name> secret grant)"
+order: 35
+roles: [certwarden_agent]

@@ -8,8 +8,9 @@
 #      the framework and holds your secrets. Under config/ it provides:
 #        inventory/hosts.yml    REQUIRED  your host table: each host (by its
 #                                         Tailscale hostname) and its values
-#        inventory/groups.yml   REQUIRED  turns those values into groups,
-#                                         incl. the framework's <app>_<role>
+#        inventory/groups.yml   REQUIRED  turns those values into groups
+#        tags/<dim>/<value>.yml optional  what each util:/feat: tag runs (roles,
+#                                         task files); overrides hosts/tags/
 #        vars/group/, vars/host/ REQUIRED  variables + vault-encrypted secrets
 #        site.yml               optional  which roles run where (default: the
 #                                         framework's hosts/site.yml)
@@ -114,6 +115,9 @@ if [ -d "$CONF/secrets" ]; then
   ln -s "$CONF/secrets" "$RUN_DIR/secrets"
   EXTRA_VARS=(-e "fleet_secrets_dir=$RUN_DIR/secrets")
 fi
+# Tag manifests (what each util:/feat: tag runs): your config/tags/ first, then the
+# framework's hosts/tags/.
+EXTRA_VARS+=(-e "{\"fleet_tags_dirs\": [\"$CONF/tags\", \"$FRAMEWORK_DIR/hosts/tags\"]}")
 if [ -f "$CONF/site.yml" ]; then
   cp "$CONF/site.yml" "$RUN_DIR/site.yml"
 else
@@ -148,8 +152,8 @@ INV_ARGS=(
   -i "$CONF/inventory/groups.yml"
 )
 SELF_VARS="$(ansible-inventory "${INV_ARGS[@]}" --host "$SELF" 2>/dev/null || true)"
-if ! grep -q '"run"' <<<"$SELF_VARS"; then
-  echo "WARNING: '$SELF' has no entry (with a run: list) in inventory/hosts.yml -- only the baseline will run. The key must equal this host's Tailscale hostname." >&2
+if ! grep -qE '"(util|feat)"' <<<"$SELF_VARS"; then
+  echo "WARNING: '$SELF' has no entry (with util: or feat:) in inventory/hosts.yml -- only the baseline will run. The key must equal this host's Tailscale hostname." >&2
 fi
 
 echo "==> Running playbook"

@@ -1,0 +1,7 @@
+# Managed by Ansible (hosts/roles/dns_resolver).
+[Resolve]
+DNS={{ dns_resolver_servers | join(' ') }}
+{% if dns_resolver_fallback %}
+FallbackDNS={{ dns_resolver_fallback | join(' ') }}
+{% endif %}
+DNSOverTLS={{ dns_resolver_over_tls }}

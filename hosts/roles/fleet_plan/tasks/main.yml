@@ -1,0 +1,23 @@
+---
+# Runs whatever this host's tags select (see hosts/tags/ and the fleet repo's
+# config/tags/): each tag value in the host table (util, feat, ...) has a manifest
+# naming roles and task files. Included from site.yml.
+- name: Work out what this host runs from its tags
+  ansible.builtin.set_fact:
+    _fleet_plan: "{{ lookup('fleet_roles') }}"
+  tags: [always]
+
+- name: Report the plan
+  ansible.builtin.debug:
+    msg: >-
+      tags with manifests: {{ _fleet_plan.tags }};
+      tags without one (just classes): {{ _fleet_plan.unknown }};
+      runs: {{ _fleet_plan.plan | map(attribute='tag') | list }}
+  tags: [always]
+
+- name: Run the selected roles and task files, in manifest order
+  ansible.builtin.include_tasks: run_item.yml
+  loop: "{{ _fleet_plan.plan }}"
+  loop_control:
+    loop_var: _fleet_item
+    label: "{{ _fleet_item.tag }}: {{ _fleet_item.name | default(_fleet_item.file) }}"

@@ -14,14 +14,14 @@ Docker image build, any role on a real host.
   unaffected by the cloud firewall. Where you can, bind to the Tailscale IP
   (`arkeep_server_bind_address`).
 - Your private fleet repo, created from `consigliere-fleet-template` (private),
-  with `config/inventory/hosts.yml` (the host table, each host's `run:` list
-  naming the framework's groups) and `groups.yml`, `config/vars/` filled in, and the vault created and
+  with `config/inventory/hosts.yml` (the host table, each host's `util:`/`feat:`
+  values) and `groups.yml`, `config/vars/` filled in, and the vault created and
   encrypted. Run `scripts/preflight.sh --strict` in it: it must pass. The vault
   needs `arkeep_agent_secret`, `arkeep_server_secret_key`, `arcane_server_encryption_key`,
   `semaphore_server_admin_password`, `semaphore_server_access_key_encryption` for the roles
   this host runs.
 - Add the host to `config/inventory/hosts.yml` (key = its Tailscale hostname)
-  with `run:` listing the roles it should run (e.g. `arkeep_server`). Hosts already on the
+  with `util:`/`feat:` for what it should run (e.g. `util: [arkeep]` for the server). Hosts already on the
   tailnet need no auth key; a brand-new host needs one (put `tailscale_authkey`
   in the vault, or export `TAILSCALE_AUTHKEY` for the first run).
 - A GitHub token that may manage the fleet repo's deploy keys (optional; it
@@ -77,9 +77,8 @@ Only after 2–3 work. Then wire Arkeep/Arcane/console through it per
 hosts/roles/arkeep_server/README.md and close the direct ports.
 
 ## 5. Then node 2
-Add it to `hosts.yml` with `arkeep_agent` in `run:` (and the others it should
-run), bootstrap the same way. Leave `wazuh_agent` and `arcane_agent` out of
-`run:` until a Wazuh manager exists / you've generated the
+Add it to `hosts.yml` with `feat: [arkeep]` (and the others it should run), bootstrap the same way. Leave `wazuh_agent` and `arcane_agent` out of
+`feat:` until a Wazuh manager exists / you've generated the
 Arcane agent token.
 
 ## Not built yet

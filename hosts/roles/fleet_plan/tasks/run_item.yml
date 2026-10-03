@@ -1,0 +1,13 @@
+---
+# One item of the plan from the tag manifests: a role or a task file, with the
+# manifest's optional vars.
+- name: "Role {{ _fleet_item.name | default('') }}"
+  ansible.builtin.include_role:
+    name: "{{ _fleet_item.name }}"
+  vars: "{{ _fleet_item.vars }}"
+  when: _fleet_item.kind == 'role'
+
+- name: "Tasks {{ _fleet_item.file | default('') }}"
+  ansible.builtin.include_tasks: "{{ _fleet_item.file }}"
+  vars: "{{ _fleet_item.vars }}"
+  when: _fleet_item.kind == 'tasks'
