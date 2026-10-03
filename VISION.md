@@ -236,3 +236,12 @@ manager.
   have been run against a real host yet — scaffolded and template-rendering
   verified (valid YAML in both the standalone and behind-proxy branches),
   not deployment-verified.
+- **Stashed idea (2026-10-03): warn instead of fail, driven by a `req:` property.** A
+  failing role currently stops its play (and, on a first run, the whole bootstrap). The
+  idea: mark what is essential per tag or host (e.g. `req: yes`); anything *not*
+  required would log a strong warning and carry on, and the run would end with a
+  post-run summary/log (and an Apprise notification) of everything that failed or was
+  skipped, while a failure in something required still stops the run. Not designed or
+  built: open questions are where the flag lives (tag manifest vs host table), how
+  failures are collected (`block`/`rescue` around each plan item in `fleet_plan`),
+  and what a partially applied host should report to the heartbeat.
