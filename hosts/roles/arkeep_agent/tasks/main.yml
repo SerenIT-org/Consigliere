@@ -43,6 +43,14 @@
     mode: "0640"
   register: _arkeep_agent_compose
 
+- name: Check that no container this role needs is already taken by something else
+  ansible.builtin.include_role:
+    name: docker
+    tasks_from: guard_containers
+  vars:
+    guard_containers: [arkeep-agent]
+    guard_dir: "{{ arkeep_agent_dir }}"
+
 - name: Start Arkeep agent
   community.docker.docker_compose_v2:
     project_src: "{{ arkeep_agent_dir }}"

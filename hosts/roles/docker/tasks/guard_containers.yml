@@ -1,0 +1,48 @@
+---
+# Finds containers that already have the names a compose project is about to use but were
+# NOT created from this project's directory (typically started by hand, or by an older
+# layout), which would make `docker compose up` fail with "container name already in use".
+# Inputs: guard_containers (list of names), guard_dir (the compose project directory).
+# Fails with instructions, so a check run reports the clash before anything is applied; with
+# docker_adopt_existing: true the apply removes the clashing container instead.
+- name: Look at the containers that would clash
+  ansible.builtin.command:
+    argv:
+      - docker
+      - inspect
+      - --format
+      - '{% raw %}{{ index .Config.Labels "com.docker.compose.project.working_dir" }}{% endraw %}'
+      - "{{ item }}"
+  loop: "{{ guard_containers }}"
+  register: _guard_inspect
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Collect the ones that were not created from this project
+  ansible.builtin.set_fact:
+    _guard_conflicts: "{{ (_guard_conflicts | default([])) + [item.item] }}"
+    _guard_origins: "{{ (_guard_origins | default([])) + [item.item ~ ' (from ' ~ ((item.stdout | trim) or 'outside Compose') ~ ')'] }}"
+  loop: "{{ _guard_inspect.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: item.rc == 0 and (item.stdout | trim) != guard_dir
+
+- name: Stop with instructions if a container is in the way
+  ansible.builtin.fail:
+    msg: >-
+      A container this role needs to create already exists and was not created from
+      {{ guard_dir }}: {{ _guard_origins | join(', ') }}. Remove it
+      (docker rm -f {{ _guard_conflicts | join(' ') }}) or set docker_adopt_existing: true
+      and let Consigliere remove it on the next apply.
+  when: _guard_conflicts | default([]) | length > 0 and not docker_adopt_existing
+
+- name: Remove the clashing containers (docker_adopt_existing is on)
+  ansible.builtin.command: "docker rm -f {{ _guard_conflicts | join(' ') }}"
+  when: _guard_conflicts | default([]) | length > 0 and docker_adopt_existing and not ansible_check_mode
+  changed_when: true
+
+- name: Forget this check's results
+  ansible.builtin.set_fact:
+    _guard_conflicts: []
+    _guard_origins: []

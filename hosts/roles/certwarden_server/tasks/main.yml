@@ -12,6 +12,14 @@
     mode: "0640"
   register: _certwarden_server_compose
 
+- name: Check that no container this role needs is already taken by something else
+  ansible.builtin.include_role:
+    name: docker
+    tasks_from: guard_containers
+  vars:
+    guard_containers: [certwarden]
+    guard_dir: "{{ certwarden_server_dir }}"
+
 - name: Start Cert Warden
   community.docker.docker_compose_v2:
     project_src: "{{ certwarden_server_dir }}"

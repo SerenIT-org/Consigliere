@@ -4,6 +4,11 @@ docker_mode: standalone
 
 docker_users: []   # usernames to add to the `docker` group
 
+# A container named like one a role is about to create, but started by hand or from another
+# directory, makes `compose up` fail. By default the run stops and says how to remove it;
+# set true (per host) to let Consigliere remove such containers itself.
+docker_adopt_existing: false
+
 # swarm-only, see tasks/swarm.yml
 # TODO (open decision): join tokens shouldn't live here in plaintext once
 # real swarm hosts exist — vault-encrypt or pull from a secret store.
