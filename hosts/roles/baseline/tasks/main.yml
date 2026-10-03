@@ -1,7 +1,8 @@
 ---
-- name: Set timezone
+- name: Set timezone (only when baseline_timezone is set; otherwise leave it alone)
   community.general.timezone:
     name: "{{ baseline_timezone }}"
+  when: baseline_timezone | length > 0
 
 - name: Install baseline packages
   ansible.builtin.apt:

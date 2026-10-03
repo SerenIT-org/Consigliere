@@ -114,7 +114,36 @@ RUN_DIR="$WORKDIR/run"
 rm -rf "$RUN_DIR"
 mkdir -p "$RUN_DIR"
 ln -s "$CONF/vars/group" "$RUN_DIR/group_vars"
-if [ -d "$CONF/vars/host" ]; then ln -s "$CONF/vars/host" "$RUN_DIR/host_vars"; fi
+# Host names are case-insensitive: the inventory name is lowercase, so the host table's
+# keys and the host_vars file names are lowercased into the run directory.
+if [ -d "$CONF/vars/host" ]; then
+  mkdir "$RUN_DIR/host_vars"
+  for f in "$CONF/vars/host"/*; do
+    [ -e "$f" ] || continue
+    b="$(basename "$f")"
+    ln -s "$f" "$RUN_DIR/host_vars/$(printf '%s' "$b" | tr '[:upper:]' '[:lower:]')"
+  done
+fi
+python3 - "$CONF/inventory/hosts.yml" "$RUN_DIR/hosts.yml" <<'PY'
+import sys, yaml
+src, dst = sys.argv[1:3]
+data = yaml.safe_load(open(src)) or {}
+def lower_hosts(node):
+    if isinstance(node, dict):
+        for k, v in list(node.items()):
+            if k == "hosts" and isinstance(v, dict):
+                seen = {}
+                for h in list(v):
+                    lh = str(h).lower()
+                    if lh in seen:
+                        sys.exit(f"ERROR: hosts.yml lists '{h}' and '{seen[lh]}', the same name ignoring case")
+                    seen[lh] = h
+                node[k] = {str(h).lower(): v[h] for h in v}
+            else:
+                lower_hosts(v)
+lower_hosts(data)
+yaml.safe_dump(data, open(dst, "w"), sort_keys=False)
+PY
 # Per-host secrets (e.g. secrets/cw/<certificate>.yml): not loaded automatically;
 # roles read only the files a host asked for, and can decrypt only its own.
 EXTRA_VARS=()
@@ -147,7 +176,7 @@ EXTRA_VARS+=(-e "fleet_age_key_file=$AGE_KEY_FILE")
 SELF="$(python3 "$FRAMEWORK_DIR/hosts/inventory/tailscale_self.py" --name)"
 INV_ARGS=(
   -i "$FRAMEWORK_DIR/hosts/inventory/tailscale_self.py"
-  -i "$CONF/inventory/hosts.yml"
+  -i "$RUN_DIR/hosts.yml"
   -i "$CONF/inventory/groups.yml"
 )
 SELF_VARS="$(ansible-inventory "${INV_ARGS[@]}" --host "$SELF" 2>/dev/null || true)"

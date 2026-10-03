@@ -1,5 +1,7 @@
 ---
-baseline_timezone: "Etc/UTC"
+# Empty = don't touch the host's timezone. Set it here (or per group/host), or use a
+# prop manifest that runs the timezone role (prop: [tz_est]).
+baseline_timezone: ""
 
 baseline_packages:
   - curl

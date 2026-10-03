@@ -65,7 +65,7 @@ export TAILSCALE_AUTHKEY="${TAILSCALE_AUTHKEY:-}"
 
 echo "==> Installing git + ansible"
 apt-get update
-apt-get install -y git ansible curl age
+apt-get install -y git ansible curl age python3-apt
 
 echo "==> Installing host-local credentials"
 install -d -m 0700 "$CRED_DIR"

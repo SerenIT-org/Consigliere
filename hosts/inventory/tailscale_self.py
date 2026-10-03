@@ -6,7 +6,7 @@ Each host reconciles itself (hosts/bootstrap/reconcile.sh), so the inventory
 is just "me", with a few facts (addresses, and the Tailscale tags as the
 informational `tailscale_node_tags`; nothing in the framework relies on tags).
 Which groups a host belongs to is declared in the fleet-config repo's host
-table (config/inventory/hosts.yml), keyed by this same hostname. If Tailscale
+table (config/inventory/hosts.yml), keyed by this same hostname (case-insensitive). If Tailscale
 isn't installed or running yet (a brand-new host), the OS hostname is used.
 
 Test hook: TAILSCALE_STATUS_JSON=<file> reads that file instead of running
@@ -40,7 +40,9 @@ def me():
 
 def build():
     me_ = me()
-    name = (me_.get("HostName") or "").strip() or "localhost"
+    # Host names are case-insensitive: the inventory name is always lowercase, and
+    # reconcile.sh lowercases the fleet's host table and host_vars file names to match.
+    name = ((me_.get("HostName") or "").strip() or "localhost").lower()
     ips = me_.get("TailscaleIPs") or []
     return {
         "_meta": {"hostvars": {name: {
