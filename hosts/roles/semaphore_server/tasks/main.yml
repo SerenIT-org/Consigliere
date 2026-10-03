@@ -40,3 +40,5 @@
     project_src: "{{ semaphore_server_dir }}"
     state: present
     pull: "{{ 'always' if _semaphore_server_compose.changed else 'missing' }}"
+  # In a check run the directory and compose file above are not really written yet.
+  when: not ansible_check_mode or not _semaphore_server_compose.changed
