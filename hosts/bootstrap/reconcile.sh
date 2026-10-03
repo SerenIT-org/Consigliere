@@ -21,8 +21,9 @@
 # This script clones/updates both, assembles a throwaway run directory from
 # them, and runs the playbook against *this host only* (each host reconciles
 # itself). Run on a schedule via fleet-reconcile.timer, installed by
-# bootstrap.sh. Extra ansible-playbook flags can be passed through
-# ANSIBLE_EXTRA_ARGS, e.g. "--check --diff" for a read-only drift report.
+# bootstrap.sh. Every apply is preceded by a check pass that must succeed
+# (RECONCILE_MODE=check for report-only; see below). Extra ansible-playbook flags
+# can be passed through ANSIBLE_EXTRA_ARGS.
 set -euo pipefail
 
 : "${FRAMEWORK_REPO_URL:?Set FRAMEWORK_REPO_URL to the git remote for this repo}"
@@ -158,10 +159,29 @@ fi
 
 echo "==> Running playbook"
 cd "$RUN_DIR"
-# shellcheck disable=SC2086  # ANSIBLE_EXTRA_ARGS is intentionally word-split
-ansible-playbook \
-  "${INV_ARGS[@]}" --limit "$SELF" \
-  ${VAULT_ARGS[@]+"${VAULT_ARGS[@]}"} \
-  ${EXTRA_VARS[@]+"${EXTRA_VARS[@]}"} \
-  ${ANSIBLE_EXTRA_ARGS:-} \
-  site.yml
+run_playbook() {
+  # shellcheck disable=SC2086  # ANSIBLE_EXTRA_ARGS is intentionally word-split
+  ansible-playbook \
+    "${INV_ARGS[@]}" --limit "$SELF" \
+    ${VAULT_ARGS[@]+"${VAULT_ARGS[@]}"} \
+    ${EXTRA_VARS[@]+"${EXTRA_VARS[@]}"} \
+    ${ANSIBLE_EXTRA_ARGS:-} \
+    "$@" site.yml
+}
+
+# RECONCILE_MODE=check  report drift only (--check --diff), change nothing.
+# RECONCILE_MODE=apply  (default) check first, and only if that pass succeeds,
+#                       apply. RECONCILE_PRECHECK=0 skips the check pass (bootstrap
+#                       does, after you approved the first check by hand).
+case "${RECONCILE_MODE:-apply}" in
+  check) echo "==> Check only"; run_playbook --check --diff ;;
+  apply)
+    if [ "${RECONCILE_PRECHECK:-1}" = 1 ]; then
+      echo "==> Pre-check (nothing is changed)"
+      run_playbook --check --diff || { echo "ERROR: the pre-check failed; not applying" >&2; exit 1; }
+    fi
+    echo "==> Applying"
+    run_playbook
+    ;;
+  *) echo "ERROR: RECONCILE_MODE must be check or apply" >&2; exit 2 ;;
+esac

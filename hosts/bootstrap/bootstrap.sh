@@ -23,6 +23,11 @@
 # /etc/fleet-reconcile/vault.d/ (0600); delete the source copies afterwards.
 set -euo pipefail
 
+# Ask for anything missing when run by hand on a terminal.
+if [ -t 0 ]; then
+  [ -n "${FRAMEWORK_REPO_URL:-}" ] || read -r -p "Framework repo URL (e.g. https://github.com/almadon/consigliere.git): " FRAMEWORK_REPO_URL
+  [ -n "${FLEET_CONFIG_REPO_URL:-}" ] || read -r -p "Your PRIVATE fleet repo URL (SSH form, git@github.com:you/fleet.git): " FLEET_CONFIG_REPO_URL
+fi
 : "${FRAMEWORK_REPO_URL:?Set FRAMEWORK_REPO_URL to the git remote for this repo}"
 FRAMEWORK_REPO_BRANCH="${FRAMEWORK_REPO_BRANCH:-}"   # empty = the remote default branch
 
@@ -71,6 +76,7 @@ FLEET_CONFIG_REPO_URL=$FLEET_CONFIG_REPO_URL
 FLEET_CONFIG_REPO_BRANCH=$FLEET_CONFIG_REPO_BRANCH
 HEARTBEAT_URL="${HEARTBEAT_URL:-}"
 HEARTBEAT_FAIL_URL="${HEARTBEAT_FAIL_URL:-}"
+RECONCILE_MODE="${RECONCILE_MODE:-apply}"
 EOF
 chmod 600 /etc/fleet-reconcile.env
 
@@ -82,11 +88,25 @@ echo "==> Making sure this host can read the private fleet-config repo"
 CRED_DIR="$CRED_DIR" FLEET_CONFIG_REPO_URL="$FLEET_CONFIG_REPO_URL" \
   "$WORKDIR/framework/hosts/bootstrap/ensure-access.sh"
 
-echo "==> Running first reconciliation"
 set -a
 source /etc/fleet-reconcile.env
 set +a
-"$WORKDIR/framework/hosts/bootstrap/reconcile.sh"
+
+# Nothing is applied until you have seen what would change: the first run is a
+# check-only pass (--check --diff). Applying and enabling the timer are explicit.
+echo "==> First run: CHECK ONLY (nothing on this host is changed)"
+if ! RECONCILE_MODE=check "$WORKDIR/framework/hosts/bootstrap/reconcile.sh"; then
+  echo "WARN: the check pass reported errors (on a brand-new host some are expected: e.g. Docker isn't installed yet, so container tasks can't be simulated). Read the output above." >&2
+fi
+if [ -t 0 ]; then
+  read -r -p "Apply these changes for real and enable the timer? [y/N] " answer
+  [ "$answer" = y ] || [ "$answer" = Y ] || { echo "Nothing applied, timer not installed. Re-run bootstrap.sh when ready."; exit 0; }
+elif [ "${BOOTSTRAP_APPLY:-}" != yes ]; then
+  echo "Non-interactive run: nothing applied, timer not installed. Re-run with BOOTSTRAP_APPLY=yes to apply."
+  exit 0
+fi
+echo "==> Applying"
+RECONCILE_PRECHECK=0 "$WORKDIR/framework/hosts/bootstrap/reconcile.sh"
 
 echo "==> Installing systemd timer for future reconciliation runs"
 cp "$WORKDIR/framework/hosts/bootstrap/fleet-reconcile.service" /etc/systemd/system/fleet-reconcile.service
