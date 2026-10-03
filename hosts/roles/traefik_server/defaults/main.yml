@@ -30,9 +30,14 @@ traefik_server_dir: /opt/traefik
 # Where certificates live on the host (certwarden_agent_dir), and the names to
 # load from there. Defaults to every certificate certwarden_agent fetches.
 traefik_server_certs_dir: "{{ common_dir | default('/opt/common') }}/certs"
+# Certificates to serve: the host's `cert:` tag values plus anything in certwarden_agent_certs*
+# (plain names or {name: ...} entries).
 traefik_server_certificates: >-
-  {{ query('ansible.builtin.varnames', '^certwarden_agent_certs(_.*)?$')
-     | map('extract', vars) | flatten | map(attribute='name') | list }}
+  {{ ((cert | default([]))
+      + (query('ansible.builtin.varnames', '^certwarden_agent_certs(_.*)?$') | map('extract', vars) | flatten
+         | selectattr('name', 'defined') | map(attribute='name') | list)
+      + (query('ansible.builtin.varnames', '^certwarden_agent_certs(_.*)?$') | map('extract', vars) | flatten
+         | reject('mapping') | list)) | unique | list }}
 
 # Entry point names, matching the static traefik.yml in geotraefik.
 traefik_server_entrypoint_web: web

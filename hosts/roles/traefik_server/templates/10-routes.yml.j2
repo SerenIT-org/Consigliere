@@ -5,7 +5,9 @@
 {% else %}
 http:
   routers:
-{% for r in _traefik_server_routes %}
+{% for src in _traefik_server_sources %}
+    # from {{ src }}
+{% for r in lookup('vars', src) %}
 {% set hosts = r.host if (r.host is defined and r.host is not string) else ([r.host] if r.host is defined else []) %}
     {{ r.name }}:
       rule: {{ (r.rule | default(hosts | map('regex_replace', '^(.*)$', 'Host(`\\1`)') | join(' || '))) | to_json }}
@@ -15,6 +17,7 @@ http:
       middlewares: {{ r.middlewares | to_json }}
 {% endif %}
       tls: {}
+{% endfor %}
 {% endfor %}
   services:
 {% for r in _traefik_server_routes %}

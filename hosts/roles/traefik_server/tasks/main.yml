@@ -1,9 +1,22 @@
 ---
 - name: Collect this host's routes from every layer that defines them
   ansible.builtin.set_fact:
+    _traefik_server_sources: "{{ query('ansible.builtin.varnames', '^traefik_server_routes(_.*)?$') | sort }}"
     _traefik_server_routes: >-
       {{ query('ansible.builtin.varnames', '^traefik_server_routes(_.*)?$')
          | map('extract', vars) | flatten }}
+
+- name: Show which variable each route comes from
+  ansible.builtin.debug:
+    msg: >-
+      {% if _traefik_server_sources | length == 0 -%}
+      No Traefik routes on this host. Define traefik_server_routes (or traefik_server_routes_<anything>)
+      in any vars layer this host sees: util_traefik.yml, a service's group file (util_arkeep.yml, ...),
+      all.yml or vars/host/<host>.yml.
+      {%- else -%}
+      Traefik routes on this host ({{ _traefik_server_routes | length }}):
+      {% for src in _traefik_server_sources %}{{ src }} = {{ lookup('vars', src) | map(attribute='name', default='?') | join(', ') }}{{ '; ' if not loop.last else '' }}{% endfor %}
+      {%- endif %}
 
 - name: Summarise the routes for validation
   ansible.builtin.set_fact:
