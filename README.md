@@ -29,6 +29,11 @@ it is not the primary execution path, `ansible-pull` is.
 Roles:
 - `baseline` — users, SSH hardening, unattended-upgrades
 - `tailscale` — install + join (see inventory below)
+- `firewall` — ufw, run last by `fleet_plan`: deny inbound except everything on the tailnet
+  interface, plus ports the tags ask for (`util: [traefik]` opens 80/443; a manifest's
+  `firewall:` list). SSH is not opened to the world: reach it over Tailscale, or list LAN
+  networks in `firewall_ssh_from`. A host that isn't on the tailnet yet keeps SSH open (with
+  a warning) so it can't be locked out. Docker-published ports bypass ufw.
 - `docker` — Docker CE install; `docker_mode: standalone|swarm` toggles swarm-specific tasks
 - `wazuh_agent` — opt-in via the `wazuh_agent` group (so nothing breaks before a manager exists); enrolls a Wazuh agent against `wazuh_server_addr`
   (see [stacks/wazuh/](stacks/wazuh/)); replaced an earlier Lynis+maldet

@@ -1,0 +1,98 @@
+---
+- name: Look for ufw (a check run on a fresh host has not installed it yet)
+  ansible.builtin.stat:
+    path: /usr/sbin/ufw
+  register: _firewall_ufw
+
+- name: Is this host on the tailnet?
+  ansible.builtin.command: tailscale status --json
+  register: _firewall_ts
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Work out the firewall's situation
+  ansible.builtin.set_fact:
+    _firewall_on_tailnet: >-
+      {{ _firewall_ts.rc | default(1) == 0 and
+         (_firewall_ts.stdout | default('', true) | trim | length > 0) and
+         ((_firewall_ts.stdout | from_json).BackendState | default('')) == 'Running' }}
+    _firewall_apply: "{{ _firewall_ufw.stat.exists or not ansible_check_mode }}"
+
+# SSH stays reachable somehow, or this host would be unreachable once the firewall is on.
+- name: Decide whether SSH has to stay open to the world
+  ansible.builtin.set_fact:
+    _firewall_open_ssh: >-
+      {{ firewall_public_ssh or
+         (not (_firewall_on_tailnet | bool) and (firewall_ssh_from | length == 0)) }}
+
+- name: Warn when SSH is kept open because there is no other way in
+  ansible.builtin.debug:
+    msg: >-
+      WARNING: this host is not on the tailnet and firewall_ssh_from is empty, so SSH
+      stays open to the world on port 22 to avoid locking you out. Join the tailnet (or
+      set firewall_ssh_from) and the next run closes it.
+  when: _firewall_open_ssh | bool and not firewall_public_ssh
+
+- name: Default policy for inbound traffic is deny
+  community.general.ufw:
+    default: deny
+    direction: incoming
+  when: _firewall_apply | bool
+
+- name: Default policy for outbound traffic is allow
+  community.general.ufw:
+    default: allow
+    direction: outgoing
+  when: _firewall_apply | bool
+
+- name: Allow everything arriving over the tailnet
+  community.general.ufw:
+    rule: allow
+    direction: in
+    interface: "{{ firewall_tailnet_interface }}"
+    comment: tailnet
+  when: _firewall_apply | bool and firewall_tailnet_allow_all and (_firewall_on_tailnet | bool)
+
+- name: Allow SSH from the listed networks
+  community.general.ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+    from_ip: "{{ item }}"
+    comment: ssh from {{ item }}
+  loop: "{{ firewall_ssh_from }}"
+  when: _firewall_apply | bool
+
+- name: Open SSH to the world (only when it must stay reachable)
+  community.general.ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+    comment: ssh
+  when: _firewall_apply | bool and _firewall_open_ssh | bool
+
+- name: Close public SSH (reached over the tailnet or from the listed networks instead)
+  community.general.ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+    delete: true
+  when: _firewall_apply | bool and not (_firewall_open_ssh | bool)
+
+- name: Open the ports the tags and your extra rules ask for
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.port | string }}"
+    proto: "{{ item.proto | default('tcp') }}"
+    from_ip: "{{ item.from | default('') or 'any' }}"
+    comment: "{{ item.comment | default('tag') }}"
+  loop: "{{ firewall_tag_rules + firewall_extra_rules }}"
+  loop_control:
+    label: "{{ item.port }}/{{ item.proto | default('tcp') }}"
+  when: _firewall_apply | bool
+
+- name: Enable the firewall
+  community.general.ufw:
+    state: enabled
+  when: _firewall_apply | bool

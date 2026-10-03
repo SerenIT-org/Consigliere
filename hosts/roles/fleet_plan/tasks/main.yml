@@ -30,3 +30,11 @@
   loop_control:
     loop_var: _fleet_item
     label: "{{ _fleet_item.tag }}: {{ _fleet_item.name | default(_fleet_item.file) }}"
+
+# The firewall comes last, once everything the tags put on this host is known: the tag
+# manifests' `firewall:` lists say which ports to open to the world.
+- name: Apply the host firewall
+  ansible.builtin.include_role:
+    name: firewall
+  vars:
+    firewall_tag_rules: "{{ _fleet_plan.firewall }}"

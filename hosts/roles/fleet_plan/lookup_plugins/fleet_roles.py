@@ -12,6 +12,8 @@ Each (dimension, value) may have a manifest file  <dir>/<dimension>/<value>.yml:
     roles: [traefik_server]       # roles to run
     tasks: [files/extra.yml]      # task files, relative to the manifest (optional)
     vars: {timezone_name: UTC}    # variables given to those roles/tasks (optional)
+    firewall: [{port: 443, proto: tcp}]   # ports to open to the world (optional; an optional
+                                  # `from:` CIDR limits who; see the firewall role)
     secrets: [arkeep.agent]       # secrets (config/secrets/<kind>/<name>.yml) the host needs;
                                   # in <dimension>/_default.yml "{value}" expands per tag value
 The search dirs come first-wins, so your fleet repo's config/tags/ can add tags
@@ -48,7 +50,7 @@ def _as_list(v):
 
 
 def resolve(values, dims, dirs, strict=False):
-    """values: {dimension: value or list}. Returns {"plan", "tags", "unknown", "secrets"}.
+    """values: {dimension: value or list}. Returns {"plan", "tags", "unknown", "secrets", "firewall"}.
     Also used by the fleet repo's scripts/access.sh to work out who may read which secret."""
 
     def find(tag):
@@ -119,7 +121,15 @@ def resolve(values, dims, dirs, strict=False):
             if ("tasks", f) not in done:
                 done.add(("tasks", f))
                 plan.append({"kind": "tasks", "file": f, "tag": tag, "vars": m.get("vars") or {}})
-    return {"plan": plan, "tags": sorted(manifests), "unknown": sorted(unknown), "secrets": sorted(secrets)}
+    firewall, seen_fw = [], set()
+    for tag in order:
+        for rule in _as_list(manifests[tag][0].get("firewall")):
+            key = (str(rule.get("port")), str(rule.get("proto", "tcp")), str(rule.get("from", "")))
+            if key not in seen_fw:
+                seen_fw.add(key)
+                firewall.append({"port": rule.get("port"), "proto": rule.get("proto", "tcp"), "from": rule.get("from", "")})
+    return {"plan": plan, "tags": sorted(manifests), "unknown": sorted(unknown), "secrets": sorted(secrets),
+            "firewall": firewall}
 
 
 class LookupModule(LookupBase):

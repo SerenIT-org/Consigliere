@@ -1,0 +1,21 @@
+---
+# Host firewall (ufw). Policy: deny everything inbound except
+#   - everything arriving on the tailnet interface (Tailscale's own ACLs decide who may
+#     talk to what; set firewall_tailnet_allow_all: false to open nothing there), and
+#   - the ports tags ask for (util: [traefik] opens 80 and 443 to the world), plus
+#     firewall_extra_rules.
+# SSH is NOT opened to the world. On a host that is on the tailnet it is reached over
+# Tailscale. Hosts on a LAN list their networks in firewall_ssh_from. Safety net: a host
+# that is not (yet) on the tailnet and has no firewall_ssh_from keeps SSH open on 22,
+# with a warning, so enabling the firewall can never lock you out of a fresh machine.
+# NOTE: ports published by Docker bypass ufw (Docker writes its own iptables rules); the
+# services here bind to the Tailscale IP for that reason.
+firewall_tailnet_interface: tailscale0
+firewall_tailnet_allow_all: true
+# Networks allowed to SSH in (e.g. a LAN): ["192.168.1.0/24"].
+firewall_ssh_from: []
+# Explicitly open SSH to the world (not recommended).
+firewall_public_ssh: false
+# Rules from the tag manifests (set by fleet_plan) and your own: [{port: 8443, proto: tcp, from: ""}]
+firewall_tag_rules: []
+firewall_extra_rules: []
