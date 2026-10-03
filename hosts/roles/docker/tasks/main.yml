@@ -1,18 +1,38 @@
 ---
+# deb822 .sources file + an armored key, written with plain file modules: no gpg or
+# apt-key needed on the host (Debian 13 has neither by default), and it is the layout
+# Docker's own instructions use, so a host that already follows them stays unchanged.
+- name: Create the apt keyrings directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
 - name: Add Docker GPG key
   ansible.builtin.get_url:
     url: "https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg"
-    dest: /usr/share/keyrings/docker-archive-keyring.asc
+    dest: /etc/apt/keyrings/docker.asc
     mode: "0644"
 
 - name: Add Docker apt repo
-  ansible.builtin.apt_repository:
-    repo: >-
-      deb [arch={{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}
-      signed-by=/usr/share/keyrings/docker-archive-keyring.asc]
-      https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable
-    state: present
-    filename: docker
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/docker.sources
+    content: |
+      Types: deb
+      URIs: https://download.docker.com/linux/{{ ansible_distribution | lower }}
+      Suites: {{ ansible_distribution_release }}
+      Components: stable
+      Architectures: {{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}
+      Signed-By: /etc/apt/keyrings/docker.asc
+    owner: root
+    group: root
+    mode: "0644"
+  register: _docker_repo
+
+- name: Refresh the package index after adding the repo
+  ansible.builtin.apt:
+    update_cache: true
+  when: _docker_repo.changed
 
 - name: Install Docker CE
   ansible.builtin.apt:
@@ -22,7 +42,6 @@
       - containerd.io
       - docker-compose-plugin
     state: present
-    update_cache: true
 
 # Services publish ports on the host's Tailscale IP (see the server_* roles).
 # Docker can't bind an address that doesn't exist yet, so after a reboot it must

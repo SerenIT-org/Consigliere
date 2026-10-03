@@ -1,13 +1,19 @@
 ---
-# One item of the plan from the tag manifests: a role or a task file, with the
-# manifest's optional vars.
+# One item of the plan from the tag manifests: a role or a task file. The manifest's
+# optional vars are set as host variables first (include_role/include_tasks do not accept
+# a templated dict for `vars:`).
+- name: "Set the vars the {{ _fleet_item.tag }} manifest presets"
+  ansible.builtin.set_fact:
+    "{{ item.key }}": "{{ item.value }}"
+  loop: "{{ _fleet_item.vars | default({}) | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+
 - name: "Role {{ _fleet_item.name | default('') }}"
   ansible.builtin.include_role:
     name: "{{ _fleet_item.name }}"
-  vars: "{{ _fleet_item.vars }}"
   when: _fleet_item.kind == 'role'
 
 - name: "Tasks {{ _fleet_item.file | default('') }}"
   ansible.builtin.include_tasks: "{{ _fleet_item.file }}"
-  vars: "{{ _fleet_item.vars }}"
   when: _fleet_item.kind == 'tasks'

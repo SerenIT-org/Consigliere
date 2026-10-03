@@ -1,9 +1,4 @@
 ---
-- name: Set timezone (only when baseline_timezone is set; otherwise leave it alone)
-  community.general.timezone:
-    name: "{{ baseline_timezone }}"
-  when: baseline_timezone | length > 0
-
 - name: Install baseline packages
   ansible.builtin.apt:
     name: "{{ baseline_packages }}"
@@ -11,7 +6,13 @@
     update_cache: true
     cache_valid_time: 3600
 
-- name: Enable unattended-upgrades
+- name: Set timezone (only when baseline_timezone is set; otherwise leave it alone)
+  community.general.timezone:
+    name: "{{ baseline_timezone }}"
+  when: baseline_timezone | length > 0
+
+# --- unattended upgrades ----------------------------------------------------
+- name: Turn on the periodic apt update + unattended upgrade
   ansible.builtin.copy:
     dest: /etc/apt/apt.conf.d/20auto-upgrades
     content: |
@@ -24,26 +25,51 @@
 # A drop-in instead of editing the vendor's 50unattended-upgrades: apt reads
 # apt.conf.d in order and the last value wins, so this needs no particular
 # contents (or even the package) to exist first, and survives package upgrades.
-- name: Configure unattended-upgrades auto-reboot
+- name: Configure unattended-upgrades (reboot, cleanup, extra origins)
   ansible.builtin.copy:
     dest: /etc/apt/apt.conf.d/52consigliere-unattended-upgrades
     content: |
       // Managed by Ansible (hosts/roles/baseline)
       Unattended-Upgrade::Automatic-Reboot "{{ baseline_unattended_upgrades_auto_reboot | lower }}";
+      Unattended-Upgrade::Automatic-Reboot-Time "{{ baseline_unattended_upgrades_reboot_time }}";
+      Unattended-Upgrade::Remove-Unused-Dependencies "{{ baseline_unattended_upgrades_remove_unused | lower }}";
+      Unattended-Upgrade::Remove-New-Unused-Dependencies "{{ baseline_unattended_upgrades_remove_unused | lower }}";
+      {% for o in baseline_unattended_upgrades_extra_origins %}
+      Unattended-Upgrade::Origins-Pattern:: "{{ o }}";
+      {% endfor %}
     owner: root
     group: root
     mode: "0644"
+
+- name: Make sure the apt timers that drive it are enabled
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - apt-daily.timer
+    - apt-daily-upgrade.timer
+
+# --- firewall ---------------------------------------------------------------
+# Allow SSH first, then enable: turning the firewall on with "deny incoming" before the
+# allow rule exists can cut off the very connection this runs over.
+- name: Look for ufw (a check run on a fresh host has not installed it yet)
+  ansible.builtin.stat:
+    path: /usr/sbin/ufw
+  register: _baseline_ufw
+
+- name: Allow SSH through ufw
+  community.general.ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+    # NOTE: once the tailscale role has run, consider tightening this to only allow SSH
+    # on the tailscale0 interface (`interface: tailscale0`) rather than every interface.
+  when: _baseline_ufw.stat.exists or not ansible_check_mode
 
 - name: Enable ufw with default deny incoming
   community.general.ufw:
     state: enabled
     policy: deny
     direction: incoming
-
-- name: Allow SSH through ufw
-  community.general.ufw:
-    rule: allow
-    name: OpenSSH
-    # NOTE: once the tailscale role has run, consider tightening this to
-    # only allow SSH on the tailscale0 interface (`interface: tailscale0`)
-    # rather than every interface.
+  when: _baseline_ufw.stat.exists or not ansible_check_mode

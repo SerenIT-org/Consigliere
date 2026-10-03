@@ -6,9 +6,9 @@
 # no aggregation; the manager/indexer/dashboard stack lives in
 # stacks/wazuh/, this role is just the agent side.
 #
-# Steps below mirror Wazuh's own documented apt install exactly (as of
-# 2026-08-21) rather than using the deprecated ansible.builtin.apt_key
-# module -- see https://documentation.wazuh.com, Linux agent install.
+# Same repo and key as Wazuh's documented apt install (https://documentation.wazuh.com,
+# Linux agent install), written as a deb822 .sources file with the armored key so nothing
+# here depends on gpg/apt-key being present.
 
 - name: Fail fast if no Wazuh server address is configured
   ansible.builtin.fail:
@@ -20,40 +20,37 @@
     wazuh_server_addr is not defined or not wazuh_server_addr or
     wazuh_server_addr is search('CHANGEME')
 
-- name: Install apt prerequisites for the Wazuh repo
-  ansible.builtin.apt:
-    name:
-      - gnupg
-      - apt-transport-https
-    state: present
+- name: Create the apt keyrings directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
 
-- name: Download Wazuh GPG key
+# Armored key + deb822 .sources, no gpg/apt-key needed on the host.
+- name: Download the Wazuh GPG key
   ansible.builtin.get_url:
     url: https://packages.wazuh.com/key/GPG-KEY-WAZUH
-    dest: /tmp/GPG-KEY-WAZUH
+    dest: /etc/apt/keyrings/wazuh.asc
     mode: "0644"
 
-- name: Import Wazuh GPG key into its own keyring
-  ansible.builtin.command:
-    cmd: >-
-      gpg --no-default-keyring
-      --keyring gnupg-ring:/usr/share/keyrings/wazuh.gpg
-      --import /tmp/GPG-KEY-WAZUH
-  args:
-    creates: /usr/share/keyrings/wazuh.gpg
-
-- name: Fix keyring permissions
-  ansible.builtin.file:
-    path: /usr/share/keyrings/wazuh.gpg
+- name: Add the Wazuh apt repo
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/wazuh.sources
+    content: |
+      Types: deb
+      URIs: https://packages.wazuh.com/{{ wazuh_agent_apt_repo_version }}/apt/
+      Suites: stable
+      Components: main
+      Signed-By: /etc/apt/keyrings/wazuh.asc
+    owner: root
+    group: root
     mode: "0644"
+  register: _wazuh_agent_repo
 
-- name: Add Wazuh apt repo
-  ansible.builtin.apt_repository:
-    repo: >-
-      deb [signed-by=/usr/share/keyrings/wazuh.gpg]
-      https://packages.wazuh.com/{{ wazuh_agent_apt_repo_version }}/apt/ stable main
-    state: present
-    filename: wazuh
+- name: Refresh the package index after adding the repo
+  ansible.builtin.apt:
+    update_cache: true
+  when: _wazuh_agent_repo.changed
 
 - name: Install wazuh-agent
   ansible.builtin.apt:

@@ -7,6 +7,15 @@
     _fleet_plan: "{{ lookup('fleet_roles') }}"
   tags: [always]
 
+# Tags implied by `requires:` (and cert: values) are not in the host table, so their
+# groups (and therefore vars/group/feat_certwarden.yml and the like) don't exist yet.
+- name: Join the groups of every tag that applies, including implied ones
+  ansible.builtin.group_by:
+    key: "{{ item | replace('/', '_') | replace('.', '_') }}"
+  loop: "{{ _fleet_plan.tags | reject('search', '/_default$') | list }}"
+  changed_when: false
+  tags: [always]
+
 - name: Report the plan
   ansible.builtin.debug:
     msg: >-

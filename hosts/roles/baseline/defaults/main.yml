@@ -3,11 +3,28 @@
 # prop manifest that runs the timezone role (prop: [tz_est]).
 baseline_timezone: ""
 
+# Every Debian/Ubuntu node gets these (bootstrap.sh installs the first few itself, since
+# it needs them before this role can run).
 baseline_packages:
+  - sudo
   - curl
+  - gnupg
+  - ca-certificates
+  - python3-apt
   - git
+  - jq
+  - rsync
   - htop
   - ufw
   - unattended-upgrades
+  - apt-listchanges
 
+# Unattended upgrades: security and stable updates from Debian's default origins are
+# applied automatically (Debian's own 50unattended-upgrades is left alone; this role adds
+# a drop-in that is read after it).
 baseline_unattended_upgrades_auto_reboot: false   # flip on per-host once you trust it
+baseline_unattended_upgrades_reboot_time: "04:00" # used when auto-reboot is on
+baseline_unattended_upgrades_remove_unused: true  # autoremove packages left unused
+# Extra origins to upgrade automatically, e.g. ["origin=Tailscale"]. Don't add Docker's:
+# an upgrade restarts the daemon and with it the containers.
+baseline_unattended_upgrades_extra_origins: []
