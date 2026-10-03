@@ -14,6 +14,7 @@
     mode: "0644"
   loop: [service, timer]
   notify: Reload systemd for compose updates
+  register: _compose_updates_units
 
 - name: Enable the timer
   ansible.builtin.systemd:
@@ -21,3 +22,4 @@
     enabled: true
     state: started
     daemon_reload: true
+  when: not ansible_check_mode or not _compose_updates_units.changed

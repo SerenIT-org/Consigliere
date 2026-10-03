@@ -46,6 +46,7 @@
     - service
     - timer
   notify: Reload systemd for certwarden fetch
+  register: _certwarden_agent_units
   tags: [timer]
 
 - name: Enable the daily check
@@ -54,6 +55,7 @@
     enabled: true
     state: started
     daemon_reload: true
+  when: not ansible_check_mode or not _certwarden_agent_units.changed
   tags: [timer]
 
 # Not fatal: on first bring-up Cert Warden may not have issued the certificate
