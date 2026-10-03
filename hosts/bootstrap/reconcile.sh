@@ -26,6 +26,10 @@
 # can be passed through ANSIBLE_EXTRA_ARGS.
 set -euo pipefail
 
+# Unattended runs must never wait on a credentials prompt: the framework is public and
+# the private repo uses a deploy key.
+export GIT_TERMINAL_PROMPT=0
+
 : "${FRAMEWORK_REPO_URL:?Set FRAMEWORK_REPO_URL to the git remote for this repo}"
 FRAMEWORK_REPO_BRANCH="${FRAMEWORK_REPO_BRANCH:-}"   # empty = the remote default branch
 

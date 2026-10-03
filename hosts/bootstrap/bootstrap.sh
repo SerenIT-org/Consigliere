@@ -26,11 +26,22 @@ if [ -t 0 ]; then
   [ -n "${FRAMEWORK_REPO_URL:-}" ] || read -r -p "Framework repo URL (e.g. https://github.com/almadon/consigliere.git): " FRAMEWORK_REPO_URL
   [ -n "${FLEET_CONFIG_REPO_URL:-}" ] || read -r -p "Your PRIVATE fleet repo URL (SSH form, git@github.com:you/fleet.git): " FLEET_CONFIG_REPO_URL
 fi
+# Never let git ask for a username/password: the framework repo is public (no login),
+# and the private fleet repo is read with a deploy key over SSH.
+export GIT_TERMINAL_PROMPT=0
 : "${FRAMEWORK_REPO_URL:?Set FRAMEWORK_REPO_URL to the git remote for this repo}"
 FRAMEWORK_REPO_BRANCH="${FRAMEWORK_REPO_BRANCH:-}"   # empty = the remote default branch
 
 : "${FLEET_CONFIG_REPO_URL:?Set FLEET_CONFIG_REPO_URL to your PRIVATE fleet-config repo}"
 FLEET_CONFIG_REPO_BRANCH="${FLEET_CONFIG_REPO_BRANCH:-}"   # empty = the remote default branch
+
+# The private repo is read with a per-host deploy key, which needs the SSH form. Accept
+# the https URL you copy from GitHub and convert it.
+case "$FLEET_CONFIG_REPO_URL" in
+  https://github.com/*)
+    FLEET_CONFIG_REPO_URL="git@github.com:${FLEET_CONFIG_REPO_URL#https://github.com/}"
+    echo "Using the SSH form for the private repo: $FLEET_CONFIG_REPO_URL" ;;
+esac
 
 WORKDIR="/opt/fleet-reconcile"
 CRED_DIR="/etc/fleet-reconcile"
@@ -73,7 +84,10 @@ chmod 600 /etc/fleet-reconcile.env
 
 echo "==> Cloning framework repo (to get reconcile.sh)"
 mkdir -p "$WORKDIR"
-git clone ${FRAMEWORK_REPO_BRANCH:+--branch "$FRAMEWORK_REPO_BRANCH"} "$FRAMEWORK_REPO_URL" "$WORKDIR/framework"
+git clone ${FRAMEWORK_REPO_BRANCH:+--branch "$FRAMEWORK_REPO_BRANCH"} "$FRAMEWORK_REPO_URL" "$WORKDIR/framework" || {
+  echo "ERROR: could not clone $FRAMEWORK_REPO_URL. The framework repo is public and needs no login, so this URL is wrong or unreachable (it lives at https://github.com/almadon/consigliere.git)." >&2
+  exit 1
+}
 
 echo "==> Installing sops (pinned, checksum-verified)"
 "$WORKDIR/framework/hosts/bootstrap/install-sops.sh"
