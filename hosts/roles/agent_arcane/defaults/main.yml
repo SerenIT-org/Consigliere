@@ -12,7 +12,7 @@
 # server_arcane_api_url (group-wide) is the manager's URL, set in
 # config/vars/group/agent_arcane.yml.
 
-agent_arcane_dir: /opt/arcane-agent
+agent_arcane_dir: "{{ common_dir | default('/opt/common') }}/arcane"
 # "poll" is what the wizard emitted for edge agents; the previous default
 # ("websocket") was a guess from the non-edge example.
 agent_arcane_edge_transport: poll

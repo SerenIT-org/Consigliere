@@ -104,6 +104,13 @@ rm -rf "$RUN_DIR"
 mkdir -p "$RUN_DIR"
 ln -s "$CONF/vars/group" "$RUN_DIR/group_vars"
 if [ -d "$CONF/vars/host" ]; then ln -s "$CONF/vars/host" "$RUN_DIR/host_vars"; fi
+# Per-host secrets (e.g. secrets/cw/<certificate>.yml): not loaded automatically;
+# roles read only the files a host asked for, each with its own vault id.
+EXTRA_VARS=()
+if [ -d "$CONF/secrets" ]; then
+  ln -s "$CONF/secrets" "$RUN_DIR/secrets"
+  EXTRA_VARS=(-e "fleet_secrets_dir=$RUN_DIR/secrets")
+fi
 if [ -f "$CONF/site.yml" ]; then
   cp "$CONF/site.yml" "$RUN_DIR/site.yml"
 else
@@ -118,7 +125,9 @@ export ANSIBLE_CONFIG="$FRAMEWORK_DIR/hosts/ansible.cfg"
 # with a vault id named after the group (`base` for group/all). A host holds a
 # password file in vault.d/ ONLY for the scopes it should read, and Ansible
 # only loads a group's files for hosts in that group -- so a host never
-# decrypts (or can decrypt) secrets outside its scopes.
+# decrypts (or can decrypt) secrets outside its scopes. Per-host secrets in
+# config/secrets/<kind>/<name>.yml use the vault id <kind>.<name> (kind cw =
+# Cert Warden certificates) and are read only by hosts that request them.
 VAULT_ARGS=()
 if [ -d "$VAULT_DIR" ]; then
   for f in "$VAULT_DIR"/*; do
@@ -133,5 +142,6 @@ ansible-playbook \
   -i "$FRAMEWORK_DIR/hosts/inventory/tailscale_self.py" \
   -i "$CONF/inventory/groups.yml" \
   ${VAULT_ARGS[@]+"${VAULT_ARGS[@]}"} \
+  ${EXTRA_VARS[@]+"${EXTRA_VARS[@]}"} \
   ${ANSIBLE_EXTRA_ARGS:-} \
   site.yml

@@ -3,16 +3,21 @@
 # from the central Cert Warden (typically the Traefik hosts).
 #
 # What goes where (layered, so a host only sees what it should):
-#   agent_certwarden_server_url   fleet vars  e.g. https://100.x.y.z:4055
+#   agent_certwarden_server_url   fleet vars  e.g. http://100.x.y.z:4050
 #   agent_certwarden_certs*       fleet vars  [{name: <Cert Warden certificate name>}]
-#   agent_certwarden_apikeys*     VAULT       {<name>: {cert: <cert api key>, key: <key api key>}}
-# Any variable whose name starts with agent_certwarden_certs / _apikeys is
-# collected, so a base group and a host-specific group can each contribute.
+#   API keys                      VAULT       one file per certificate:
+#                                 config/secrets/cw/<name>.yml, vault id cw.<name>,
+#                                 containing `cert:` and `key:` (the two API keys)
+# Any variable whose name starts with agent_certwarden_certs is collected, so a
+# group file and one host's file can each contribute. A host reads (and needs
+# the vault password for) only the certificates it lists.
 #
 # Output, per certificate:  <dir>/<name>/fullchain.pem  and  <dir>/<name>/privkey.pem
 
-agent_certwarden_dir: /opt/certs
+agent_certwarden_dir: "{{ common_dir | default('/opt/common') }}/certs"
 agent_certwarden_server_url: ""
+# Set by reconcile.sh to the fleet repo's config/secrets.
+agent_certwarden_secrets_dir: "{{ fleet_secrets_dir | default(playbook_dir ~ '/secrets') }}"
 agent_certwarden_certs: []
 
 # Cert Warden presents a self-signed certificate until it has issued one for

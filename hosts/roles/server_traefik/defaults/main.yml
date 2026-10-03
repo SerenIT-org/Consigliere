@@ -29,7 +29,7 @@ server_traefik_dir: /opt/traefik
 
 # Where certificates live on the host (agent_certwarden_dir), and the names to
 # load from there. Defaults to every certificate agent_certwarden fetches.
-server_traefik_certs_dir: /opt/certs
+server_traefik_certs_dir: "{{ common_dir | default('/opt/common') }}/certs"
 server_traefik_certificates: >-
   {{ query('ansible.builtin.varnames', '^agent_certwarden_certs(_.*)?$')
      | map('extract', vars) | flatten | map(attribute='name') | list }}

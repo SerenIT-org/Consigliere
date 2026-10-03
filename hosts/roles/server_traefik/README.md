@@ -33,7 +33,7 @@ Mount the rendered config and the certificates, and drop the ACME resolver
     traefik:
       volumes:
         - /opt/traefik/dynamic:/dynamic:ro
-        - /opt/certs:/certs:ro
+        - /opt/common/certs:/certs:ro
       networks: [edge, proxynet]         # your shared network, external
 
 and in `traefik.yml`, a file provider on `/dynamic` with `watch: true`, and no

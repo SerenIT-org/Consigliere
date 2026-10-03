@@ -1,40 +1,21 @@
 ---
-# Gathers certificates and API keys from every layer and refuses to continue on
-# missing or placeholder configuration. Separate file so it can be tested alone.
+# Works out which certificates this host asked for, loads the API keys for
+# exactly those (one vault file per certificate, vault id cw.<name>) and refuses
+# to continue on missing or placeholder configuration. Separate file so it can
+# be tested alone.
 
-- name: Collect certificates and API keys from every layer that defines them
+- name: Collect the certificates this host asked for (every layer that defines them)
   ansible.builtin.set_fact:
     _agent_certwarden_all_certs: >-
       {{ query('ansible.builtin.varnames', '^agent_certwarden_certs(_.*)?$')
          | map('extract', vars) | flatten }}
-    _agent_certwarden_all_keys: >-
-      {{ query('ansible.builtin.varnames', '^agent_certwarden_apikeys(_.*)?$')
-         | map('extract', vars) | list | combine }}
-  no_log: true   # the key dictionary holds secrets
+    _agent_certwarden_all_keys: {}
 
-- name: Work out which certificates have no API key entry (names only)
+- name: Check the certificate list before names are used in file paths
   ansible.builtin.set_fact:
     _agent_certwarden_names: "{{ _agent_certwarden_all_certs | map(attribute='name') | list }}"
-    _agent_certwarden_missing: >-
-      {{ _agent_certwarden_all_certs | map(attribute='name')
-         | reject('in', _agent_certwarden_all_keys.keys() | list) | list }}
-    _agent_certwarden_placeholders: []
-  no_log: true
 
-- name: Check every API key entry for placeholder values (names only)
-  ansible.builtin.set_fact:
-    _agent_certwarden_placeholders: >-
-      {{ _agent_certwarden_placeholders + [item.name] }}
-  loop: "{{ _agent_certwarden_all_certs }}"
-  loop_control:
-    label: "{{ item.name }}"
-  when: >-
-    item.name in _agent_certwarden_all_keys and
-    (('CHANGEME' in (_agent_certwarden_all_keys[item.name].cert | default('CHANGEME') | string))
-     or ('CHANGEME' in (_agent_certwarden_all_keys[item.name].key | default('CHANGEME') | string)))
-  no_log: true
-
-- name: Fail fast on missing or placeholder configuration
+- name: Fail fast on a bad URL or certificate list
   ansible.builtin.assert:
     that:
       - agent_certwarden_server_url | length > 0
@@ -42,14 +23,36 @@
       - _agent_certwarden_names | length > 0
       - _agent_certwarden_names | unique | length == _agent_certwarden_names | length
       - >-
-        _agent_certwarden_names | select('match', '^[A-Za-z0-9][A-Za-z0-9._-]*$') | list | length
+        _agent_certwarden_names | select('match', '^[A-Za-z0-9_][A-Za-z0-9._-]*$') | list | length
         == _agent_certwarden_names | length
-      - _agent_certwarden_missing | length == 0
-      - _agent_certwarden_placeholders | length == 0
     fail_msg: >-
-      agent_certwarden is not configured correctly. Needs: agent_certwarden_server_url,
-      at least one certificate in agent_certwarden_certs*, unique names made of
-      letters/digits/dot/dash/underscore, and a non-placeholder API key pair in
-      agent_certwarden_apikeys* (vault) for each. Missing keys for:
-      {{ _agent_certwarden_missing }}; still placeholders: {{ _agent_certwarden_placeholders }}.
+      agent_certwarden is not configured correctly. Needs: agent_certwarden_server_url
+      and at least one certificate in agent_certwarden_certs* with a unique name made of
+      letters/digits/dot/dash/underscore (may start with an underscore).
+    quiet: true
+
+# Only the files for requested certificates are read, so a host never needs (or
+# is given) the vault password of a certificate it was not granted.
+- name: Load the API keys of each requested certificate
+  ansible.builtin.include_tasks: load_secret.yml
+  loop: "{{ _agent_certwarden_names }}"
+  loop_control:
+    loop_var: _cw_name
+
+- name: Find placeholder values (names only)
+  ansible.builtin.set_fact:
+    _agent_certwarden_placeholders: >-
+      {{ _agent_certwarden_placeholders | default([]) + [item] }}
+  loop: "{{ _agent_certwarden_names }}"
+  when: >-
+    ('CHANGEME' in (_agent_certwarden_all_keys[item].cert | string))
+    or ('CHANGEME' in (_agent_certwarden_all_keys[item].key | string))
+  no_log: true
+
+- name: Fail fast on placeholder keys
+  ansible.builtin.assert:
+    that: _agent_certwarden_placeholders | default([]) | length == 0
+    fail_msg: >-
+      Placeholder API keys for {{ _agent_certwarden_placeholders | default([]) }}.
+      Edit with: scripts/vault.sh edit cw.<certificate name>
     quiet: true
