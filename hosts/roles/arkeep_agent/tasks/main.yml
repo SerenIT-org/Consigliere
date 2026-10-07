@@ -48,8 +48,8 @@
     name: docker
     tasks_from: guard_containers
   vars:
-    guard_containers: [arkeep-agent]
-    guard_dir: "{{ arkeep_agent_dir }}"
+    docker_guard_containers: [arkeep-agent]
+    docker_guard_dir: "{{ arkeep_agent_dir }}"
 
 - name: Start Arkeep agent
   community.docker.docker_compose_v2:

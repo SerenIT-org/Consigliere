@@ -56,8 +56,8 @@
     name: docker
     tasks_from: guard_containers
   vars:
-    guard_containers: [restic-server]
-    guard_dir: "{{ restic_server_dir }}"
+    docker_guard_containers: [restic-server]
+    docker_guard_dir: "{{ restic_server_dir }}"
 
 - name: Start the restic REST server
   community.docker.docker_compose_v2:

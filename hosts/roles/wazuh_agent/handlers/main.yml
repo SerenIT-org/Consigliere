@@ -1,0 +1,5 @@
+---
+
+- name: Refresh the package index after the Wazuh repo changed
+  ansible.builtin.apt:
+    update_cache: true

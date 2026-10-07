@@ -4,7 +4,7 @@
 # naming roles and task files. Included from site.yml.
 - name: Work out what this host runs from its tags
   ansible.builtin.set_fact:
-    _fleet_plan: "{{ lookup('fleet_roles') }}"
+    _fleet_plan_data: "{{ lookup('fleet_roles') }}"
   tags: [always]
 
 # Tags implied by `requires:` (and cert: values) are not in the host table, so their
@@ -12,21 +12,21 @@
 - name: Join the groups of every tag that applies, including implied ones
   ansible.builtin.group_by:
     key: "{{ item | replace('/', '_') | replace('.', '_') }}"
-  loop: "{{ _fleet_plan.tags | reject('search', '/_default$') | list }}"
+  loop: "{{ _fleet_plan_data.tags | reject('search', '/_default$') | list }}"
   changed_when: false
   tags: [always]
 
 - name: Report the plan
   ansible.builtin.debug:
     msg: >-
-      tags with manifests: {{ _fleet_plan.tags }};
-      tags without one (just classes): {{ _fleet_plan.unknown }};
-      runs: {{ _fleet_plan.plan | map(attribute='tag') | list }}
+      tags with manifests: {{ _fleet_plan_data.tags }};
+      tags without one (just classes): {{ _fleet_plan_data.unknown }};
+      runs: {{ _fleet_plan_data.plan | map(attribute='tag') | list }}
   tags: [always]
 
 - name: Run the selected roles and task files, in manifest order
   ansible.builtin.include_tasks: run_item.yml
-  loop: "{{ _fleet_plan.plan }}"
+  loop: "{{ _fleet_plan_data.plan }}"
   loop_control:
     loop_var: _fleet_item
     label: "{{ _fleet_item.tag }}: {{ _fleet_item.name | default(_fleet_item.file) }}"
@@ -37,4 +37,4 @@
   ansible.builtin.include_role:
     name: firewall
   vars:
-    firewall_tag_rules: "{{ _fleet_plan.firewall }}"
+    firewall_tag_rules: "{{ _fleet_plan_data.firewall }}"

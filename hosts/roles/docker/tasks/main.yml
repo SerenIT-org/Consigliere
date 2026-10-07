@@ -27,12 +27,10 @@
     owner: root
     group: root
     mode: "0644"
-  register: _docker_repo
+  notify: Refresh the package index after the Docker repo changed
 
-- name: Refresh the package index after adding the repo
-  ansible.builtin.apt:
-    update_cache: true
-  when: _docker_repo.changed
+- name: Pick up the new repo before installing from it
+  ansible.builtin.meta: flush_handlers
 
 - name: Install Docker CE
   ansible.builtin.apt:

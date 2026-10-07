@@ -10,4 +10,4 @@
   ansible.builtin.include_tasks: load_one.yml
   loop: "{{ load_secrets_scopes }}"
   loop_control:
-    loop_var: _ls_scope
+    loop_var: load_secrets_scope

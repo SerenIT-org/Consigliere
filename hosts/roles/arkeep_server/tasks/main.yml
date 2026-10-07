@@ -46,8 +46,8 @@
     name: docker
     tasks_from: guard_containers
   vars:
-    guard_containers: [arkeep-server]
-    guard_dir: "{{ arkeep_server_dir }}"
+    docker_guard_containers: [arkeep-server]
+    docker_guard_dir: "{{ arkeep_server_dir }}"
 
 - name: Start Arkeep server
   community.docker.docker_compose_v2:

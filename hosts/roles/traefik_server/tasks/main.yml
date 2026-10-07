@@ -9,14 +9,14 @@
 - name: Show which variable each route comes from
   ansible.builtin.debug:
     msg: >-
-      {% if _traefik_server_sources | length == 0 -%}
-      No Traefik routes on this host. Define traefik_server_routes (or traefik_server_routes_<anything>)
-      in any vars layer this host sees: util_traefik.yml, a service's group file (util_arkeep.yml, ...),
-      all.yml or vars/host/<host>.yml.
-      {%- else -%}
-      Traefik routes on this host ({{ _traefik_server_routes | length }}):
-      {% for src in _traefik_server_sources %}{{ src }} = {{ lookup('vars', src) | map(attribute='name', default='?') | join(', ') }}{{ '; ' if not loop.last else '' }}{% endfor %}
-      {%- endif %}
+      {{ ('No Traefik routes on this host. Define traefik_server_routes (or traefik_server_routes_<anything>)'
+          ~ ' in any vars layer this host sees: util_traefik.yml, a service group file (util_arkeep.yml, ...),'
+          ~ ' all.yml or vars/host/<host>.yml.')
+         if _traefik_server_sources | length == 0 else
+         ('Traefik routes on this host (' ~ (_traefik_server_routes | length) ~ '): '
+          ~ (_traefik_server_sources
+             | zip(_traefik_server_sources | map('extract', vars) | map('map', attribute='name') | map('join', ', '))
+             | map('join', ' = ') | join('; '))) }}
 
 - name: Summarise the routes for validation
   ansible.builtin.set_fact:

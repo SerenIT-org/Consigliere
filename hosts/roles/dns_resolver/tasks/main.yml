@@ -8,9 +8,9 @@
     quiet: true
 
 - name: Check that systemd-resolved is in use
-  ansible.builtin.command: systemctl is-active systemd-resolved
-  register: _dns_resolver_active
-  changed_when: false
+  ansible.builtin.systemd:
+    name: systemd-resolved
+  register: _dns_resolver_unit
   failed_when: false
   check_mode: false
 
@@ -19,7 +19,7 @@
     msg: >-
       systemd-resolved is not active on this host, so dns_resolver can't set DNS
       without taking over /etc/resolv.conf. Enable systemd-resolved or drop this tag.
-  when: _dns_resolver_active.stdout | trim != 'active'
+  when: (_dns_resolver_unit.status.ActiveState | default('')) != 'active'
 
 - name: Create the resolved drop-in directory
   ansible.builtin.file:

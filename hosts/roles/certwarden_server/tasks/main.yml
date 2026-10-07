@@ -17,8 +17,8 @@
     name: docker
     tasks_from: guard_containers
   vars:
-    guard_containers: [certwarden]
-    guard_dir: "{{ certwarden_server_dir }}"
+    docker_guard_containers: [certwarden]
+    docker_guard_dir: "{{ certwarden_server_dir }}"
 
 - name: Start Cert Warden
   community.docker.docker_compose_v2:

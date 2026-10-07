@@ -44,8 +44,8 @@
     name: docker
     tasks_from: guard_containers
   vars:
-    guard_containers: [arcane-edge-agent]
-    guard_dir: "{{ arcane_agent_dir }}"
+    docker_guard_containers: [arcane-edge-agent]
+    docker_guard_dir: "{{ arcane_agent_dir }}"
 
 - name: Start Arcane agent
   community.docker.docker_compose_v2:

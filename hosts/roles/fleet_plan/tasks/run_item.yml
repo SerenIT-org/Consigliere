@@ -2,7 +2,7 @@
 # One item of the plan from the tag manifests: a role or a task file. The manifest's
 # optional vars are set as host variables first (include_role/include_tasks do not accept
 # a templated dict for `vars:`).
-- name: "Set the vars the {{ _fleet_item.tag }} manifest presets"
+- name: "Set the vars the manifest presets: {{ _fleet_item.tag }}"
   ansible.builtin.set_fact:
     "{{ item.key }}": "{{ item.value }}"
   loop: "{{ _fleet_item.vars | default({}) | dict2items }}"

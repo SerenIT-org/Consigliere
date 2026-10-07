@@ -1,11 +1,11 @@
 ---
-- name: "Read {{ _ls_scope }}"
+- name: "Read {{ load_secrets_scope }}"
   ansible.builtin.include_tasks: read.yml
 
-- name: "Make the values of {{ _ls_scope }} available as variables"
+- name: "Make the secret values available as variables: {{ load_secrets_scope }}"
   ansible.builtin.set_fact:
     "{{ item.key }}": "{{ item.value }}"
-  loop: "{{ _ls_data | dict2items }}"
+  loop: "{{ _load_secrets_data | dict2items }}"
   loop_control:
     label: "{{ item.key }}"
   no_log: true
